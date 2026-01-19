@@ -35,4 +35,31 @@ export default defineSchema({
   })
     .index("by_organizationId", ["organizationId"])
     .index("by_workosUserId", ["workosUserId"]),
+
+  agents: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    slug: v.string(),
+    model: v.string(),
+    temperature: v.number(),
+    systemPrompt: v.string(),
+    embeddingModel: v.string(),
+    embeddingDimensions: v.number(),
+    widgetConfig: v.object({
+      primaryColor: v.string(),
+      avatarUrl: v.optional(v.string()),
+      welcomeMessage: v.string(),
+      placeholderText: v.string(),
+      position: v.string(),
+    }),
+    status: v.string(),
+    needsRetraining: v.boolean(),
+    lastTrainedAt: v.optional(v.number()),
+    version: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_organizationId_slug", ["organizationId", "slug"]),
 });
