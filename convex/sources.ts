@@ -713,6 +713,63 @@ export const insertChunksInternal = internalMutation({
 });
 
 /**
+ * Soft delete a source.
+ * Sets deletedAt timestamp, deletes associated chunks, and marks agent for retraining.
+ */
+export const deleteSource = mutation({
+  args: {
+    sourceId: v.id("sources"),
+  },
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.sourceId);
+    if (!source) {
+      throw new Error("Source not found");
+    }
+    if (source.deletedAt) {
+      throw new Error("Source already deleted");
+    }
+
+    const now = Date.now();
+
+    // Soft delete the source
+    await ctx.db.patch(args.sourceId, {
+      deletedAt: now,
+      updatedAt: now,
+    });
+
+    // Delete associated chunks so they don't appear in vector search
+    const chunks = await ctx.db
+      .query("chunks")
+      .filter((q) => q.eq(q.field("sourceId"), args.sourceId))
+      .collect();
+
+    for (const chunk of chunks) {
+      await ctx.db.delete(chunk._id);
+    }
+
+    // If source had a file, update organization storage usage
+    if (source.fileId && source.sizeKb) {
+      const org = await ctx.db.get(source.organizationId);
+      if (org) {
+        await ctx.db.patch(source.organizationId, {
+          storageUsedKb: Math.max(0, org.storageUsedKb - source.sizeKb),
+        });
+        // Delete the file from storage
+        await ctx.storage.delete(source.fileId);
+      }
+    }
+
+    // Mark the agent as needing retraining (knowledge removed)
+    await ctx.db.patch(source.agentId, {
+      needsRetraining: true,
+      updatedAt: now,
+    });
+
+    return { deletedChunks: chunks.length };
+  },
+});
+
+/**
  * Internal mutation to finalize source processing (used by processManualSource action).
  * Sets embeddedContentHash to track what was embedded.
  */
