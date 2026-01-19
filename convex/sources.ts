@@ -244,3 +244,91 @@ export const finalizeProcessing = mutation({
     });
   },
 });
+
+/**
+ * Create a website source record for web scraping.
+ * This validates the URL and creates the source with status 'pending'.
+ */
+export const createWebSource = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    url: v.string(),
+    mode: v.union(v.literal("scrape"), v.literal("crawl")),
+    crawlLimit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Basic URL validation
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(args.url);
+    } catch {
+      throw new Error("Invalid URL provided");
+    }
+
+    // Only allow http and https
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error("URL must use http or https protocol");
+    }
+
+    // Verify the organization exists
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      throw new Error("Organization not found");
+    }
+
+    // Verify the agent exists and belongs to the organization
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.deletedAt) {
+      throw new Error("Agent not found");
+    }
+    if (agent.organizationId !== args.organizationId) {
+      throw new Error("Agent does not belong to this organization");
+    }
+
+    const now = Date.now();
+
+    // Create a display name from the URL
+    const displayName = parsedUrl.hostname + (parsedUrl.pathname !== "/" ? parsedUrl.pathname : "");
+
+    // Create the source record with 'pending' status
+    const sourceId = await ctx.db.insert("sources", {
+      organizationId: args.organizationId,
+      agentId: args.agentId,
+      type: "website",
+      status: "pending",
+      name: displayName,
+      url: args.url,
+      crawledPages: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      sourceId,
+      mode: args.mode,
+      crawlLimit: args.crawlLimit ?? 10,
+    };
+  },
+});
+
+/**
+ * Update crawled pages count (used by the web scraping workflow).
+ */
+export const updateCrawledPages = mutation({
+  args: {
+    sourceId: v.id("sources"),
+    crawledPages: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.sourceId);
+    if (!source) {
+      throw new Error("Source not found");
+    }
+
+    await ctx.db.patch(args.sourceId, {
+      crawledPages: args.crawledPages,
+      updatedAt: Date.now(),
+    });
+  },
+});
