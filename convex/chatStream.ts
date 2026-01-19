@@ -13,6 +13,7 @@ import {
   type ChatCompletionUsage,
   OpenRouterAPIError,
 } from "./openrouter";
+import { FALLBACK_RESPONSE } from "./judge";
 
 // Initialize the persistent text streaming component
 const persistentTextStreaming = new PersistentTextStreaming(
@@ -187,16 +188,38 @@ export const streamChat = httpAction(async (ctx, request) => {
     pageNumber: c.pageNumber,
   }));
 
-  // Update message with final content and usage stats
+  // Build context string for judge evaluation (from RAG chunks)
+  const contextForJudge = ragPrompt.chunksUsed
+    .map((c) => c.content)
+    .join("\n\n---\n\n");
+
+  // Run LLM-as-judge safety evaluation
+  let finalContent = completionContent;
+
+  const judgeResult = await ctx.runAction(internal.judge.evaluateResponse, {
+    response: completionContent,
+    systemPrompt: ragPrompt.systemPrompt,
+    context: contextForJudge,
+    userMessage,
+  });
+
+  // If judge fails the response, replace with fallback
+  if (!judgeResult.passed) {
+    judgeResult.originalContent = completionContent;
+    finalContent = FALLBACK_RESPONSE;
+  }
+
+  // Update message with final content, usage stats, and judge evaluation
   await ctx.runMutation(internal.chat.updateMessageAfterStream, {
     messageId: messageId as Id<"messages">,
-    content: completionContent,
+    content: finalContent,
     model: actualModel,
     latencyMs,
     tokensPrompt: usage?.prompt_tokens,
     tokensCompletion: usage?.completion_tokens,
     chunksUsed: ragPrompt.chunksUsed.map((c) => c.chunkId as Id<"chunks">),
     citations: dbCitations,
+    judgeEvaluation: judgeResult,
   });
 
   // Set CORS headers on response

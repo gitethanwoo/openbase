@@ -159,6 +159,20 @@ export default defineSchema({
     tokensCompletion: v.optional(v.number()),
     latencyMs: v.optional(v.number()),
     streamId: v.optional(v.string()),
+    // LLM-as-judge evaluation results
+    judgeEvaluation: v.optional(
+      v.object({
+        passed: v.boolean(),
+        safetyScore: v.number(), // 0-1, 1 is safe
+        groundednessScore: v.number(), // 0-1, 1 is grounded in context
+        brandAlignmentScore: v.number(), // 0-1, 1 is aligned with brand
+        reasoning: v.string(),
+        flagged: v.boolean(),
+        originalContent: v.optional(v.string()), // Store original if replaced
+        judgeModel: v.string(),
+        judgeLatencyMs: v.number(),
+      })
+    ),
     createdAt: v.number(),
   }).index("by_conversationId", ["conversationId"]),
 

@@ -236,6 +236,19 @@ export const updateMessageAfterStream = internalMutation({
         })
       )
     ),
+    judgeEvaluation: v.optional(
+      v.object({
+        passed: v.boolean(),
+        safetyScore: v.number(),
+        groundednessScore: v.number(),
+        brandAlignmentScore: v.number(),
+        reasoning: v.string(),
+        flagged: v.boolean(),
+        originalContent: v.optional(v.string()),
+        judgeModel: v.string(),
+        judgeLatencyMs: v.number(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const { messageId, ...updates } = args;
