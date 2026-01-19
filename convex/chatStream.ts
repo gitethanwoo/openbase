@@ -4,8 +4,15 @@ import {
   PersistentTextStreaming,
   StreamId,
 } from "@convex-dev/persistent-text-streaming";
-import { buildRAGPrompt, buildMessages, extractCitations } from "./rag";
+import { buildRAGPrompt, buildMessages, extractCitations, type ConversationMessage } from "./rag";
 import { Id } from "./_generated/dataModel";
+import {
+  createDefaultClient,
+  streamChatCompletion,
+  type ChatMessage,
+  type ChatCompletionUsage,
+  OpenRouterAPIError,
+} from "./openrouter";
 
 // Initialize the persistent text streaming component
 const persistentTextStreaming = new PersistentTextStreaming(
@@ -102,84 +109,58 @@ export const streamChat = httpAction(async (ctx, request) => {
 
   // Track timing and tokens
   const startTime = Date.now();
-  let totalTokens = 0;
   let completionContent = "";
+  let usage: ChatCompletionUsage | undefined;
+  let actualModel = conversation.agentConfigSnapshot.model;
 
-  // Generator function that calls the LLM and yields chunks
+  // Get model and temperature from agent config
+  const model = conversation.agentConfigSnapshot.model;
+  const temperature = conversation.agentConfigSnapshot.temperature;
+
+  // Convert messages to OpenRouter format
+  const openRouterMessages: ChatMessage[] = messagesResult.messages.map(
+    (msg: ConversationMessage) => ({
+      role: msg.role,
+      content: msg.content,
+    })
+  );
+
+  // Generator function that calls the LLM via OpenRouter client
   const generateChat = async (
     _ctx: typeof ctx,
     _request: Request,
     _streamId: StreamId,
     chunkAppender: (chunk: string) => Promise<void>
   ) => {
-    // Get OpenRouter API key from environment
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-    if (!openRouterApiKey) {
-      throw new Error("OPENROUTER_API_KEY not configured");
-    }
+    // Create OpenRouter client (throws if API key not configured)
+    const client = createDefaultClient();
 
-    const model = conversation.agentConfigSnapshot.model;
-    const temperature = conversation.agentConfigSnapshot.temperature;
-
-    // Call OpenRouter API with streaming
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openRouterApiKey}`,
-          "HTTP-Referer": process.env.CONVEX_SITE_URL ?? "https://localhost",
-          "X-Title": "ClaudeBase Chat",
-        },
-        body: JSON.stringify({
+    try {
+      // Stream the completion using the OpenRouter client
+      const result = await streamChatCompletion(
+        client,
+        {
           model,
-          messages: messagesResult.messages,
+          messages: openRouterMessages,
           temperature,
           stream: true,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error("No response body");
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-
-          const parsed = JSON.parse(data);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            completionContent += content;
-            await chunkAppender(content);
-          }
-
-          // Track usage if provided
-          if (parsed.usage) {
-            totalTokens = parsed.usage.total_tokens ?? 0;
-          }
+        },
+        async (chunk) => {
+          completionContent += chunk;
+          await chunkAppender(chunk);
         }
+      );
+
+      // Capture usage stats from the result
+      usage = result.usage;
+      actualModel = result.model;
+    } catch (error) {
+      if (error instanceof OpenRouterAPIError) {
+        throw new Error(
+          `OpenRouter API error (${error.statusCode}): ${error.message}`
+        );
       }
+      throw error;
     }
   };
 
@@ -205,13 +186,14 @@ export const streamChat = httpAction(async (ctx, request) => {
     pageNumber: c.pageNumber,
   }));
 
-  // Update message with final content
+  // Update message with final content and usage stats
   await ctx.runMutation(internal.chat.updateMessageAfterStream, {
     messageId: messageId as Id<"messages">,
     content: completionContent,
-    model: conversation.agentConfigSnapshot.model,
+    model: actualModel,
     latencyMs,
-    tokensCompletion: totalTokens,
+    tokensPrompt: usage?.prompt_tokens,
+    tokensCompletion: usage?.completion_tokens,
     chunksUsed: ragPrompt.chunksUsed.map((c) => c.chunkId as Id<"chunks">),
     citations: dbCitations,
   });
