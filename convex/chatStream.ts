@@ -182,6 +182,7 @@ export const streamChat = httpAction(async (ctx, request) => {
     sourceId: c.sourceId as Id<"sources">,
     sourceName: c.sourceName,
     sourceType: c.sourceType,
+    contentSnippet: c.contentSnippet,
     url: c.url,
     pageNumber: c.pageNumber,
   }));

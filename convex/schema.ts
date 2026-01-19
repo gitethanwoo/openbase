@@ -148,6 +148,7 @@ export default defineSchema({
           sourceId: v.id("sources"),
           sourceName: v.string(),
           sourceType: v.string(),
+          contentSnippet: v.string(),
           url: v.optional(v.string()),
           pageNumber: v.optional(v.number()),
         })

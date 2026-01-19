@@ -274,32 +274,37 @@ export interface Citation {
   sourceId: string;
   sourceName: string;
   sourceType: string;
+  contentSnippet: string;
   url?: string;
   pageNumber?: number;
 }
 
+const SNIPPET_MAX_LENGTH = 200;
+
+/**
+ * Create a content snippet from chunk content.
+ * Truncates to max length and adds ellipsis if needed.
+ */
+function createContentSnippet(content: string): string {
+  const trimmed = content.trim().replace(/\s+/g, " ");
+  if (trimmed.length <= SNIPPET_MAX_LENGTH) {
+    return trimmed;
+  }
+  return trimmed.slice(0, SNIPPET_MAX_LENGTH).trim() + "...";
+}
+
 /**
  * Extract citation metadata from the chunks used in a RAG prompt.
- * Returns deduplicated citations by source.
+ * Each chunk becomes a citation with a content snippet.
  */
 export function extractCitations(chunksUsed: FormattedChunk[]): Citation[] {
-  // Deduplicate by sourceId
-  const seenSources = new Set<string>();
-  const citations: Citation[] = [];
-
-  for (const chunk of chunksUsed) {
-    if (!seenSources.has(chunk.sourceId)) {
-      seenSources.add(chunk.sourceId);
-      citations.push({
-        chunkId: chunk.chunkId,
-        sourceId: chunk.sourceId,
-        sourceName: chunk.sourceName,
-        sourceType: chunk.sourceType,
-        url: chunk.url,
-        pageNumber: chunk.pageNumber,
-      });
-    }
-  }
-
-  return citations;
+  return chunksUsed.map((chunk) => ({
+    chunkId: chunk.chunkId,
+    sourceId: chunk.sourceId,
+    sourceName: chunk.sourceName,
+    sourceType: chunk.sourceType,
+    contentSnippet: createContentSnippet(chunk.content),
+    url: chunk.url,
+    pageNumber: chunk.pageNumber,
+  }));
 }
