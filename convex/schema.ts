@@ -108,4 +108,56 @@ export default defineSchema({
     dimensions: 1536,
     filterFields: ["organizationId", "agentId"],
   }),
+
+  conversations: defineTable({
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    agentVersion: v.number(),
+    agentConfigSnapshot: v.object({
+      name: v.string(),
+      model: v.string(),
+      temperature: v.number(),
+      systemPrompt: v.string(),
+    }),
+    visitorId: v.string(),
+    origin: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    country: v.optional(v.string()),
+    city: v.optional(v.string()),
+    messageCount: v.number(),
+    sentiment: v.optional(v.string()),
+    topics: v.array(v.string()),
+    leadId: v.optional(v.id("leads")),
+    createdAt: v.number(),
+    lastMessageAt: v.number(),
+  })
+    .index("by_organizationId_agentId", ["organizationId", "agentId"])
+    .index("by_visitorId", ["visitorId"]),
+
+  messages: defineTable({
+    organizationId: v.id("organizations"),
+    conversationId: v.id("conversations"),
+    role: v.string(),
+    content: v.string(),
+    chunksUsed: v.optional(v.array(v.id("chunks"))),
+    citations: v.optional(
+      v.array(
+        v.object({
+          chunkId: v.id("chunks"),
+          sourceId: v.id("sources"),
+          sourceName: v.string(),
+          sourceType: v.string(),
+          url: v.optional(v.string()),
+          pageNumber: v.optional(v.number()),
+        })
+      )
+    ),
+    model: v.optional(v.string()),
+    tokensPrompt: v.optional(v.number()),
+    tokensCompletion: v.optional(v.number()),
+    latencyMs: v.optional(v.number()),
+    streamId: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_conversationId", ["conversationId"]),
 });
