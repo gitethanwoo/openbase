@@ -1,0 +1,14 @@
+{
+  "id": "81d4e06c-0ed1-4c8f-9846-e50a8dd9c3ef",
+  "status": "running",
+  "startedAt": "2026-01-19T20:03:02.442Z",
+  "updatedAt": "2026-01-19T20:03:02.442Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "prdPath": "./tasks/prd.json",
+  "currentIteration": 0,
+  "maxIterations": 40,
+  "totalTasks": 0,
+  "tasksCompleted": 0,
+  "cwd": "/Users/ethanwoo/dev/claudebase"
+}

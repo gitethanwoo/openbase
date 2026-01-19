@@ -1,0 +1,203 @@
+{
+  "name": "FaithBase Phase 0 - Foundation",
+  "description": "Project scaffold, full Convex schema (12 tables), shared types/utils, and environment setup for the white-label AI chatbot platform",
+  "branchName": "ralph/phase-0-foundation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project scaffold with Next.js 16 and dependencies",
+      "description": "As a developer, I need a properly configured Next.js 16 project with all required dependencies so I can start building features.",
+      "acceptanceCriteria": [
+        "Next.js 16 app created with App Router",
+        "React 19 installed",
+        "TailwindCSS configured",
+        "shadcn/ui initialized with default components",
+        "pnpm as package manager",
+        "TypeScript strict mode enabled",
+        "ESLint and Prettier configured",
+        "pnpm run dev starts without errors",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-002",
+      "title": "Initialize Convex backend",
+      "description": "As a developer, I need Convex set up and configured so I can define the database schema.",
+      "acceptanceCriteria": [
+        "Convex installed and initialized in project",
+        "convex/ directory created with _generated folder",
+        "ConvexProvider configured in app layout",
+        "npx convex dev runs and connects successfully",
+        "Convex dashboard accessible for the project",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"]
+    },
+    {
+      "id": "US-003",
+      "title": "Core tenant schema - organizations and users tables",
+      "description": "As a developer, I need the multi-tenant foundation tables so I can implement organization-scoped features.",
+      "acceptanceCriteria": [
+        "organizations table with all fields: name, slug, vertical, allowedDomains, rateLimitTokens, rateLimitLastRefill, plan, stripeCustomerId, stripeSubscriptionId, messageCreditsUsed, messageCreditsLimit, storageUsedKb, storageLimitKb, billingCycleStart, defaultModel, createdAt, deletedAt",
+        "users table with all fields: organizationId, workosUserId, email, name, avatarUrl, role, createdAt, lastLoginAt, deletedAt",
+        "Index on organizations.slug",
+        "Index on users by organizationId",
+        "Index on users by workosUserId",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-004",
+      "title": "Agent schema - agents table with widget config",
+      "description": "As a developer, I need the agents table to store chatbot configurations.",
+      "acceptanceCriteria": [
+        "agents table with all fields: organizationId, name, slug, model, temperature, systemPrompt, embeddingModel, embeddingDimensions, widgetConfig (nested object with primaryColor, avatarUrl, welcomeMessage, placeholderText, position), status, needsRetraining, lastTrainedAt, version, createdAt, updatedAt, deletedAt",
+        "Index on agents by organizationId",
+        "Index on agents by (organizationId, slug)",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-005",
+      "title": "Knowledge schema - sources and chunks tables with vector index",
+      "description": "As a developer, I need the RAG infrastructure tables to store knowledge base content and embeddings.",
+      "acceptanceCriteria": [
+        "sources table with all fields: organizationId, agentId, type, status, name, sizeKb, chunkCount, fileId, mimeType, url, crawledPages, question, answer, content, errorMessage, workflowRunId, contentHash, createdAt, updatedAt, deletedAt",
+        "chunks table with all fields: organizationId, agentId, sourceId, content, embedding (v.array(v.float64())), embeddingModel, metadata (nested with sourceType, sourceName, pageNumber, url, chunkIndex), createdAt",
+        "Index on sources by (organizationId, agentId)",
+        "Index on sources by status",
+        "Vector index on chunks.embedding with 1536 dimensions",
+        "Vector index filters by organizationId and agentId",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-006",
+      "title": "Conversation schema - conversations and messages tables",
+      "description": "As a developer, I need the conversation tables to store chat history and analytics.",
+      "acceptanceCriteria": [
+        "conversations table with all fields: organizationId, agentId, agentVersion, agentConfigSnapshot (nested), visitorId, origin, userAgent, ipAddress, country, city, messageCount, sentiment, topics, leadId, createdAt, lastMessageAt",
+        "messages table with all fields: organizationId, conversationId, role, content, chunksUsed, citations (array of objects), model, tokensPrompt, tokensCompletion, latencyMs, streamId, createdAt",
+        "Index on conversations by (organizationId, agentId)",
+        "Index on conversations by visitorId",
+        "Index on messages by conversationId",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-007",
+      "title": "Supporting schema - leads, webhooks, auditLogs, usageEvents, jobs",
+      "description": "As a developer, I need the supporting tables for leads, webhooks, audit logging, usage tracking, and job management.",
+      "acceptanceCriteria": [
+        "leads table with fields: organizationId, conversationId, name, email, phone, customFields, source, createdAt",
+        "webhooks table with fields: organizationId, url, events, secret, isActive, lastTriggeredAt, lastStatus, createdAt, deletedAt",
+        "auditLogs table with fields: organizationId, userId, action, resourceType, resourceId, changes, ipAddress, userAgent, createdAt",
+        "usageEvents table with fields: organizationId, agentId, conversationId, messageId, eventType, model, tokensPrompt, tokensCompletion, latencyMs, chunksCreated, embeddingModel, costEstimateCents, idempotencyKey, createdAt",
+        "jobs table with fields: organizationId, jobType, sourceId, agentId, status, attemptCount, maxAttempts, scheduledAt, startedAt, completedAt, lastHeartbeat, progress, lastError, errorHistory, workflowRunId, idempotencyKey, createdAt",
+        "Appropriate indexes on organizationId for all tables",
+        "Index on jobs by (organizationId, status)",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-002"]
+    },
+    {
+      "id": "US-008",
+      "title": "Shared types - lib/types.ts with API response shapes",
+      "description": "As a developer, I need shared TypeScript types for consistent API contracts across the codebase.",
+      "acceptanceCriteria": [
+        "lib/types.ts file created",
+        "Export types derived from Convex schema (Doc types)",
+        "API response wrapper types (success, error)",
+        "Error code enum with semantic error codes",
+        "Pagination types for list endpoints",
+        "Widget config type",
+        "Vertical type union",
+        "Plan type union",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-003", "US-004", "US-005", "US-006", "US-007"]
+    },
+    {
+      "id": "US-009",
+      "title": "Shared utils - lib/utils.ts with helpers",
+      "description": "As a developer, I need utility functions for common operations like token counting and text chunking.",
+      "acceptanceCriteria": [
+        "lib/utils.ts file created (or extends existing shadcn utils)",
+        "Token counting function using tiktoken or approximation",
+        "Text chunking function (500 tokens target, 100 token overlap)",
+        "Slug generation utility",
+        "UUID generation utility",
+        "Date formatting utilities",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-008"]
+    },
+    {
+      "id": "US-010",
+      "title": "Environment setup - .env.example with documentation",
+      "description": "As a developer, I need a documented .env.example file so I can configure all required services.",
+      "acceptanceCriteria": [
+        ".env.example file created at project root",
+        "All required variables documented with comments",
+        "CONVEX_DEPLOYMENT variable",
+        "NEXT_PUBLIC_CONVEX_URL variable",
+        "WORKOS_CLIENT_ID, WORKOS_API_KEY, WORKOS_REDIRECT_URI variables",
+        "OPENROUTER_API_KEY variable",
+        "FIRECRAWL_API_KEY variable",
+        "STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET variables",
+        "BRAINTRUST_API_KEY variable",
+        "README or comments explain how to obtain each key",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-01-19T20:03:27.207Z"
+  }
+}
