@@ -213,6 +213,7 @@ export const getConversationHistory = query({
 
 /**
  * Internal mutation to update a message after streaming completes.
+ * Also records a usage event for billing and monitoring.
  */
 export const updateMessageAfterStream = internalMutation({
   args: {
@@ -252,6 +253,50 @@ export const updateMessageAfterStream = internalMutation({
   },
   handler: async (ctx, args) => {
     const { messageId, ...updates } = args;
+
+    // Update the message
     await ctx.db.patch(messageId, updates);
+
+    // Record usage event if we have token usage data
+    if (
+      args.tokensPrompt !== undefined &&
+      args.tokensCompletion !== undefined &&
+      args.model !== undefined &&
+      args.latencyMs !== undefined
+    ) {
+      // Get the message to find conversation and organization
+      const message = await ctx.db.get(messageId);
+      if (message) {
+        const conversation = await ctx.db.get(message.conversationId);
+        if (conversation) {
+          // Use messageId as the idempotency key to prevent duplicates
+          const idempotencyKey = `chat:${messageId}`;
+
+          // Check for existing event with same idempotency key
+          const existing = await ctx.db
+            .query("usageEvents")
+            .withIndex("by_idempotencyKey", (q) =>
+              q.eq("idempotencyKey", idempotencyKey)
+            )
+            .first();
+
+          if (!existing) {
+            await ctx.db.insert("usageEvents", {
+              organizationId: message.organizationId,
+              agentId: conversation.agentId,
+              conversationId: message.conversationId,
+              messageId: messageId,
+              eventType: "chat_completion",
+              model: args.model,
+              tokensPrompt: args.tokensPrompt,
+              tokensCompletion: args.tokensCompletion,
+              latencyMs: args.latencyMs,
+              idempotencyKey: idempotencyKey,
+              createdAt: Date.now(),
+            });
+          }
+        }
+      }
+    }
   },
 });

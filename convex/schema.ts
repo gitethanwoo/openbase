@@ -226,7 +226,9 @@ export default defineSchema({
     costEstimateCents: v.optional(v.number()),
     idempotencyKey: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_organizationId", ["organizationId"]),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_idempotencyKey", ["idempotencyKey"]),
 
   jobs: defineTable({
     organizationId: v.id("organizations"),
