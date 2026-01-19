@@ -24,6 +24,46 @@ export interface OpenRouterConfig {
   siteName?: string;
 }
 
+// ============================================================================
+// Embedding Types
+// ============================================================================
+
+export interface EmbeddingRequest {
+  model: string;
+  input: string | string[];
+  dimensions?: number;
+}
+
+export interface EmbeddingData {
+  object: "embedding";
+  embedding: number[];
+  index: number;
+}
+
+export interface EmbeddingUsage {
+  prompt_tokens: number;
+  total_tokens: number;
+}
+
+export interface EmbeddingResponse {
+  object: "list";
+  data: EmbeddingData[];
+  model: string;
+  usage: EmbeddingUsage;
+}
+
+export interface EmbeddingResult {
+  embedding: number[];
+  model: string;
+  usage: EmbeddingUsage;
+}
+
+export interface BatchEmbeddingResult {
+  embeddings: number[][];
+  model: string;
+  usage: EmbeddingUsage;
+}
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -178,10 +218,44 @@ export const SUPPORTED_MODELS = {
 export type SupportedModel = keyof typeof SUPPORTED_MODELS;
 
 /**
+ * Supported embedding models available through OpenRouter.
+ */
+export const EMBEDDING_MODELS = {
+  "openai/text-embedding-3-small": {
+    name: "Text Embedding 3 Small",
+    provider: "OpenAI",
+    dimensions: 1536,
+    maxTokens: 8192,
+  },
+  "openai/text-embedding-3-large": {
+    name: "Text Embedding 3 Large",
+    provider: "OpenAI",
+    dimensions: 3072,
+    maxTokens: 8192,
+  },
+} as const;
+
+export type SupportedEmbeddingModel = keyof typeof EMBEDDING_MODELS;
+
+/** Default embedding model for the platform */
+export const DEFAULT_EMBEDDING_MODEL: SupportedEmbeddingModel =
+  "openai/text-embedding-3-small";
+
+/** Default embedding dimensions (text-embedding-3-small) */
+export const DEFAULT_EMBEDDING_DIMENSIONS = 1536;
+
+/**
  * Get model info by ID.
  */
 export function getModelInfo(modelId: string) {
   return SUPPORTED_MODELS[modelId as SupportedModel];
+}
+
+/**
+ * Get embedding model info by ID.
+ */
+export function getEmbeddingModelInfo(modelId: string) {
+  return EMBEDDING_MODELS[modelId as SupportedEmbeddingModel];
 }
 
 /**
@@ -191,11 +265,21 @@ export function isModelSupported(modelId: string): modelId is SupportedModel {
   return modelId in SUPPORTED_MODELS;
 }
 
+/**
+ * Check if an embedding model ID is supported.
+ */
+export function isEmbeddingModelSupported(
+  modelId: string
+): modelId is SupportedEmbeddingModel {
+  return modelId in EMBEDDING_MODELS;
+}
+
 // ============================================================================
 // OpenRouter Client
 // ============================================================================
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_EMBEDDINGS_URL = "https://openrouter.ai/api/v1/embeddings";
 
 /**
  * Create an OpenRouter client with the given configuration.
@@ -360,6 +444,108 @@ export function createOpenRouterClient(config: OpenRouterConfig) {
       } finally {
         reader.releaseLock();
       }
+    },
+
+    /**
+     * Create embeddings for a single text input.
+     * Uses text-embedding-3-small (1536 dimensions) by default.
+     */
+    async createEmbedding(
+      text: string,
+      model: string = DEFAULT_EMBEDDING_MODEL
+    ): Promise<EmbeddingResult> {
+      const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model,
+          input: text,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: { error?: OpenRouterError } | undefined;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Not JSON, use raw text
+        }
+
+        const errorMessage = errorData?.error?.message ?? errorText;
+        throw new OpenRouterAPIError(
+          `OpenRouter Embeddings API error: ${response.status} - ${errorMessage}`,
+          response.status,
+          errorData?.error
+        );
+      }
+
+      const data: EmbeddingResponse = await response.json();
+
+      return {
+        embedding: data.data[0].embedding,
+        model: data.model,
+        usage: data.usage,
+      };
+    },
+
+    /**
+     * Create embeddings for multiple texts in a single batch request.
+     * More efficient than calling createEmbedding multiple times.
+     * Uses text-embedding-3-small (1536 dimensions) by default.
+     *
+     * @param texts - Array of texts to embed (max recommended: 100 per batch)
+     * @param model - Embedding model to use
+     * @returns Array of embeddings in the same order as input texts
+     */
+    async createEmbeddings(
+      texts: string[],
+      model: string = DEFAULT_EMBEDDING_MODEL
+    ): Promise<BatchEmbeddingResult> {
+      if (texts.length === 0) {
+        return {
+          embeddings: [],
+          model,
+          usage: { prompt_tokens: 0, total_tokens: 0 },
+        };
+      }
+
+      const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model,
+          input: texts,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: { error?: OpenRouterError } | undefined;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Not JSON, use raw text
+        }
+
+        const errorMessage = errorData?.error?.message ?? errorText;
+        throw new OpenRouterAPIError(
+          `OpenRouter Embeddings API error: ${response.status} - ${errorMessage}`,
+          response.status,
+          errorData?.error
+        );
+      }
+
+      const data: EmbeddingResponse = await response.json();
+
+      // Sort by index to ensure order matches input
+      const sortedData = [...data.data].sort((a, b) => a.index - b.index);
+
+      return {
+        embeddings: sortedData.map((d) => d.embedding),
+        model: data.model,
+        usage: data.usage,
+      };
     },
   };
 }
