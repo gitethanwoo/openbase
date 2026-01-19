@@ -14,6 +14,7 @@ import {
   OpenRouterAPIError,
 } from "./openrouter";
 import { FALLBACK_RESPONSE } from "./judge";
+import { logChatCompletion } from "./braintrust";
 
 // Initialize the persistent text streaming component
 const persistentTextStreaming = new PersistentTextStreaming(
@@ -193,6 +194,21 @@ export const streamChat = httpAction(async (ctx, request) => {
     .map((c) => c.content)
     .join("\n\n---\n\n");
 
+  // Log chat completion to Braintrust
+  logChatCompletion({
+    messages: openRouterMessages,
+    output: completionContent,
+    model: actualModel,
+    latencyMs,
+    tokensPrompt: usage?.prompt_tokens,
+    tokensCompletion: usage?.completion_tokens,
+    organizationId: conversation.organizationId,
+    agentId: conversation.agentId,
+    conversationId,
+    messageId,
+    context: contextForJudge,
+  });
+
   // Run LLM-as-judge safety evaluation
   let finalContent = completionContent;
 
@@ -201,6 +217,11 @@ export const streamChat = httpAction(async (ctx, request) => {
     systemPrompt: ragPrompt.systemPrompt,
     context: contextForJudge,
     userMessage,
+    // Pass context for Braintrust logging
+    organizationId: conversation.organizationId,
+    agentId: conversation.agentId,
+    conversationId,
+    messageId,
   });
 
   // If judge fails the response, replace with fallback

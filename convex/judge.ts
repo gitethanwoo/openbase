@@ -12,6 +12,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { createDefaultClient, type ChatMessage } from "./openrouter";
+import { logJudgeEvaluation } from "./braintrust";
 
 // ============================================================================
 // Types
@@ -167,6 +168,11 @@ export const evaluateResponse = internalAction({
     systemPrompt: v.string(),
     context: v.string(),
     userMessage: v.string(),
+    // Optional context for Braintrust logging
+    organizationId: v.optional(v.string()),
+    agentId: v.optional(v.string()),
+    conversationId: v.optional(v.string()),
+    messageId: v.optional(v.string()),
   },
   handler: async (_ctx, args): Promise<JudgeResult> => {
     const startTime = Date.now();
@@ -189,6 +195,20 @@ export const evaluateResponse = internalAction({
 
     const latencyMs = Date.now() - startTime;
     const content = completion.choices[0]?.message?.content;
+
+    // Log judge evaluation to Braintrust
+    logJudgeEvaluation({
+      messages,
+      output: content ?? "",
+      model: JUDGE_MODEL,
+      latencyMs,
+      tokensPrompt: completion.usage?.prompt_tokens,
+      tokensCompletion: completion.usage?.completion_tokens,
+      organizationId: args.organizationId,
+      agentId: args.agentId,
+      conversationId: args.conversationId,
+      messageId: args.messageId,
+    });
 
     if (!content) {
       // If judge fails to respond, default to pass but flag for review
