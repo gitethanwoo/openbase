@@ -60,6 +60,7 @@ export interface WebScrapingInput {
   mode: "scrape" | "crawl";
   crawlLimit: number;
   embeddingModel: string;
+  jobId?: string;
 }
 
 export interface ScrapedPage {
@@ -109,6 +110,56 @@ export async function updateCrawledPages(
   await getConvex().mutation(api.sources.updateCrawledPages, {
     sourceId: sourceId as Id<"sources">,
     crawledPages,
+  });
+}
+
+// ============================================================================
+// Step: Start Job
+// ============================================================================
+
+export async function startJob(jobId: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.startJob, {
+    jobId: jobId as Id<"jobs">,
+  });
+}
+
+// ============================================================================
+// Step: Update Job Progress
+// ============================================================================
+
+export async function updateJobProgress(jobId: string, progress: number) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.updateJobProgress, {
+    jobId: jobId as Id<"jobs">,
+    progress,
+  });
+}
+
+// ============================================================================
+// Step: Complete Job
+// ============================================================================
+
+export async function completeJob(jobId: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.completeJob, {
+    jobId: jobId as Id<"jobs">,
+  });
+}
+
+// ============================================================================
+// Step: Fail Job
+// ============================================================================
+
+export async function failJob(jobId: string, errorMessage: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.failJob, {
+    jobId: jobId as Id<"jobs">,
+    errorMessage,
   });
 }
 

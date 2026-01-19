@@ -11,11 +11,12 @@
  * }
  *
  * Triggers the Vercel Workflow to:
+ * - Creates a job record to track processing status
  * - Scrape single page or crawl multiple pages via Firecrawl
  * - Chunks text (500 tokens, 100 overlap)
  * - Generates embeddings via OpenAI
  * - Stores chunks in Convex
- * - Updates source status
+ * - Updates source and job status
  */
 
 import { start } from "workflow/api";
@@ -24,6 +25,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { webScrapingWorkflow } from "../../../../workflows/web-scraping";
+import { JOB_TYPE } from "../../../../convex/jobs";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -98,8 +100,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
+  // Create a job record to track this processing task
+  const idempotencyKey = `web_scraping_${sourceResult.sourceId}`;
+  const jobResult = await convex.mutation(api.jobs.createJob, {
+    organizationId: organizationId as Id<"organizations">,
+    jobType: JOB_TYPE.WEB_SCRAPING,
+    sourceId: sourceResult.sourceId,
+    agentId: agentId as Id<"agents">,
+    idempotencyKey,
+  });
+
+  if (jobResult.alreadyExists) {
+    return NextResponse.json(
+      { error: "Job already exists for this source" },
+      { status: 409 }
+    );
+  }
+
   // Start the workflow
-  await start(webScrapingWorkflow, [
+  const run = await start(webScrapingWorkflow, [
     {
       sourceId: sourceResult.sourceId,
       organizationId,
@@ -108,12 +127,21 @@ export async function POST(request: Request) {
       mode,
       crawlLimit,
       embeddingModel: agent.embeddingModel,
+      jobId: jobResult.jobId,
     },
   ]);
+
+  // Update job with workflow run ID
+  await convex.mutation(api.jobs.setWorkflowRunId, {
+    jobId: jobResult.jobId,
+    workflowRunId: run.runId,
+  });
 
   return NextResponse.json({
     success: true,
     sourceId: sourceResult.sourceId,
+    jobId: jobResult.jobId,
+    workflowRunId: run.runId,
     url,
     mode,
     crawlLimit: mode === "crawl" ? crawlLimit : undefined,

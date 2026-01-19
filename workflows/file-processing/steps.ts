@@ -49,6 +49,7 @@ export interface FileProcessingInput {
   mimeType: string;
   fileName: string;
   embeddingModel: string;
+  jobId?: string;
 }
 
 export interface TextChunk {
@@ -75,6 +76,56 @@ export async function updateSourceStatus(
   await getConvex().mutation(api.sources.updateStatus, {
     sourceId: sourceId as Id<"sources">,
     status,
+    errorMessage,
+  });
+}
+
+// ============================================================================
+// Step: Start Job
+// ============================================================================
+
+export async function startJob(jobId: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.startJob, {
+    jobId: jobId as Id<"jobs">,
+  });
+}
+
+// ============================================================================
+// Step: Update Job Progress
+// ============================================================================
+
+export async function updateJobProgress(jobId: string, progress: number) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.updateJobProgress, {
+    jobId: jobId as Id<"jobs">,
+    progress,
+  });
+}
+
+// ============================================================================
+// Step: Complete Job
+// ============================================================================
+
+export async function completeJob(jobId: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.completeJob, {
+    jobId: jobId as Id<"jobs">,
+  });
+}
+
+// ============================================================================
+// Step: Fail Job
+// ============================================================================
+
+export async function failJob(jobId: string, errorMessage: string) {
+  "use step";
+
+  await getConvex().mutation(api.jobs.failJob, {
+    jobId: jobId as Id<"jobs">,
     errorMessage,
   });
 }
