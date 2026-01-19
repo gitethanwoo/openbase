@@ -81,6 +81,7 @@ export default defineSchema({
     errorMessage: v.optional(v.string()),
     workflowRunId: v.optional(v.string()),
     contentHash: v.optional(v.string()),
+    embeddedContentHash: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
     deletedAt: v.optional(v.number()),

@@ -221,11 +221,13 @@ export const insertChunks = mutation({
 
 /**
  * Finalize source processing - update chunk count and set status to ready.
+ * Sets embeddedContentHash to current contentHash to track what was embedded.
  */
 export const finalizeProcessing = mutation({
   args: {
     sourceId: v.id("sources"),
     chunkCount: v.number(),
+    contentHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.sourceId);
@@ -233,9 +235,13 @@ export const finalizeProcessing = mutation({
       throw new Error("Source not found");
     }
 
+    // Use provided contentHash or fall back to source's current contentHash
+    const hashToEmbed = args.contentHash ?? source.contentHash;
+
     await ctx.db.patch(args.sourceId, {
       status: "ready",
       chunkCount: args.chunkCount,
+      embeddedContentHash: hashToEmbed,
       updatedAt: Date.now(),
     });
 
@@ -708,11 +714,13 @@ export const insertChunksInternal = internalMutation({
 
 /**
  * Internal mutation to finalize source processing (used by processManualSource action).
+ * Sets embeddedContentHash to track what was embedded.
  */
 export const finalizeProcessingInternal = internalMutation({
   args: {
     sourceId: v.id("sources"),
     chunkCount: v.number(),
+    contentHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.sourceId);
@@ -720,9 +728,13 @@ export const finalizeProcessingInternal = internalMutation({
       throw new Error("Source not found");
     }
 
+    // Use provided contentHash or fall back to source's current contentHash
+    const hashToEmbed = args.contentHash ?? source.contentHash;
+
     await ctx.db.patch(args.sourceId, {
       status: "ready",
       chunkCount: args.chunkCount,
+      embeddedContentHash: hashToEmbed,
       updatedAt: Date.now(),
     });
 
