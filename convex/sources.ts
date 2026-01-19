@@ -152,3 +152,95 @@ export const getFileUrl = query({
     return await ctx.storage.getUrl(args.fileId);
   },
 });
+
+/**
+ * Update source status (used by the file processing workflow).
+ */
+export const updateStatus = mutation({
+  args: {
+    sourceId: v.id("sources"),
+    status: v.string(),
+    errorMessage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.sourceId);
+    if (!source) {
+      throw new Error("Source not found");
+    }
+
+    await ctx.db.patch(args.sourceId, {
+      status: args.status,
+      errorMessage: args.errorMessage,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Insert chunks with embeddings (used by the file processing workflow).
+ * Handles batch insertion of chunks.
+ */
+export const insertChunks = mutation({
+  args: {
+    chunks: v.array(
+      v.object({
+        organizationId: v.id("organizations"),
+        agentId: v.id("agents"),
+        sourceId: v.id("sources"),
+        content: v.string(),
+        embedding: v.array(v.float64()),
+        embeddingModel: v.string(),
+        metadata: v.object({
+          sourceType: v.string(),
+          sourceName: v.string(),
+          pageNumber: v.optional(v.number()),
+          url: v.optional(v.string()),
+          chunkIndex: v.number(),
+        }),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Insert all chunks
+    const insertPromises = args.chunks.map((chunk) =>
+      ctx.db.insert("chunks", {
+        ...chunk,
+        createdAt: now,
+      })
+    );
+
+    await Promise.all(insertPromises);
+
+    return { insertedCount: args.chunks.length };
+  },
+});
+
+/**
+ * Finalize source processing - update chunk count and set status to ready.
+ */
+export const finalizeProcessing = mutation({
+  args: {
+    sourceId: v.id("sources"),
+    chunkCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.sourceId);
+    if (!source) {
+      throw new Error("Source not found");
+    }
+
+    await ctx.db.patch(args.sourceId, {
+      status: "ready",
+      chunkCount: args.chunkCount,
+      updatedAt: Date.now(),
+    });
+
+    // Mark the agent as needing retraining (new knowledge added)
+    await ctx.db.patch(source.agentId, {
+      needsRetraining: true,
+      updatedAt: Date.now(),
+    });
+  },
+});
