@@ -62,4 +62,50 @@ export default defineSchema({
   })
     .index("by_organizationId", ["organizationId"])
     .index("by_organizationId_slug", ["organizationId", "slug"]),
+
+  sources: defineTable({
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    type: v.string(),
+    status: v.string(),
+    name: v.string(),
+    sizeKb: v.optional(v.number()),
+    chunkCount: v.optional(v.number()),
+    fileId: v.optional(v.id("_storage")),
+    mimeType: v.optional(v.string()),
+    url: v.optional(v.string()),
+    crawledPages: v.optional(v.number()),
+    question: v.optional(v.string()),
+    answer: v.optional(v.string()),
+    content: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    workflowRunId: v.optional(v.string()),
+    contentHash: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_organizationId_agentId", ["organizationId", "agentId"])
+    .index("by_status", ["status"]),
+
+  chunks: defineTable({
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    sourceId: v.id("sources"),
+    content: v.string(),
+    embedding: v.array(v.float64()),
+    embeddingModel: v.string(),
+    metadata: v.object({
+      sourceType: v.string(),
+      sourceName: v.string(),
+      pageNumber: v.optional(v.number()),
+      url: v.optional(v.string()),
+      chunkIndex: v.number(),
+    }),
+    createdAt: v.number(),
+  }).vectorIndex("by_embedding", {
+    vectorField: "embedding",
+    dimensions: 1536,
+    filterFields: ["organizationId", "agentId"],
+  }),
 });
