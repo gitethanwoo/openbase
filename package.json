@@ -16,6 +16,7 @@
     "@mendable/firecrawl-js": "^4.11.1",
     "@openrouter/ai-sdk-provider": "^2.0.0",
     "@radix-ui/react-slot": "^1.2.4",
+    "@workos-inc/authkit-nextjs": "^2.13.0",
     "ai": "^6.0.41",
     "braintrust": "^2.0.2",
     "class-variance-authority": "^0.7.1",
