@@ -103,17 +103,12 @@
       "format": "cjs"
     },
     "src/widget/Widget.tsx": {
-      "bytes": 13315,
+      "bytes": 6339,
       "imports": [
         {
           "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
           "kind": "import-statement",
           "original": "react"
-        },
-        {
-          "path": "./api",
-          "kind": "import-statement",
-          "external": true
         },
         {
           "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js",
@@ -123,13 +118,8 @@
       ],
       "format": "esm"
     },
-    "src/widget/api.ts": {
-      "bytes": 2643,
-      "imports": [],
-      "format": "esm"
-    },
     "src/widget/index.tsx": {
-      "bytes": 2353,
+      "bytes": 3058,
       "imports": [
         {
           "path": "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/client.js",
@@ -140,11 +130,6 @@
           "path": "src/widget/Widget.tsx",
           "kind": "import-statement",
           "original": "./Widget"
-        },
-        {
-          "path": "src/widget/api.ts",
-          "kind": "import-statement",
-          "original": "./api"
         },
         {
           "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js",
@@ -180,7 +165,7 @@
           "bytesInOutput": 253
         },
         "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom-client.production.js": {
-          "bytesInOutput": 176064
+          "bytesInOutput": 176043
         },
         "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/client.js": {
           "bytesInOutput": 253
@@ -192,16 +177,13 @@
           "bytesInOutput": 51
         },
         "src/widget/index.tsx": {
-          "bytesInOutput": 936
+          "bytesInOutput": 1260
         },
         "src/widget/Widget.tsx": {
-          "bytesInOutput": 6105
-        },
-        "src/widget/api.ts": {
-          "bytesInOutput": 1232
+          "bytesInOutput": 3063
         }
       },
-      "bytes": 200517
+      "bytes": 196546
     }
   }
 }

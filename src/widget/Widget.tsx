@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { AgentData, Message, WidgetConfig } from "./types";
-import { WidgetAPI } from "./api";
+import type { WidgetConfig, IframeToParentMessage } from "./types";
 
 interface WidgetProps {
-  agent: AgentData;
-  api: WidgetAPI;
+  agentId: string;
+  apiUrl: string;
+  config: WidgetConfig;
 }
 
 /**
@@ -32,371 +32,152 @@ function getPositionStyles(
 }
 
 /**
- * Generate unique IDs for messages
+ * Get iframe position styles based on widget config
  */
-function generateId(): string {
-  return `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+function getIframePositionStyles(
+  position: WidgetConfig["position"]
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    position: "absolute",
+    width: "380px",
+    maxWidth: "calc(100vw - 40px)",
+    height: "520px",
+    maxHeight: "calc(100vh - 120px)",
+  };
+
+  // Position iframe above/below the toggle button based on config
+  switch (position) {
+    case "bottom-left":
+      return { ...base, bottom: "70px", left: "0" };
+    case "top-right":
+      return { ...base, top: "70px", right: "0" };
+    case "top-left":
+      return { ...base, top: "70px", left: "0" };
+    case "bottom-right":
+    default:
+      return { ...base, bottom: "70px", right: "0" };
+  }
+}
+
+function isIframeMessage(msg: unknown): msg is IframeToParentMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as { type?: string };
+  return (
+    m.type === "widget:ready" ||
+    m.type === "widget:close" ||
+    m.type === "widget:resize"
+  );
 }
 
 /**
- * Chat Widget Component
- * Self-contained with inline styles to avoid conflicts with host page
+ * Widget Host Component
+ * Renders toggle button and iframe containing the chat UI
+ * Communicates with iframe via postMessage
  */
-export function Widget({ agent, api }: WidgetProps) {
-  const { widgetConfig } = agent;
+export function Widget({ agentId, apiUrl, config }: WidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isReady, setIsReady] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Scroll to bottom when messages change
+  // Build iframe URL
+  const iframeUrl = `${apiUrl}/embed/${agentId}`;
+
+  // Listen for messages from iframe
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    function handleMessage(event: MessageEvent) {
+      // Validate origin matches our API URL
+      const expectedOrigin = new URL(apiUrl).origin;
+      if (event.origin !== expectedOrigin) return;
 
-  // Focus input when chat opens
-  useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
-    }
-  }, [isOpen]);
+      const data = event.data;
+      if (!isIframeMessage(data)) return;
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const trimmedInput = input.trim();
-      if (!trimmedInput || isLoading) return;
-
-      setInput("");
-      setIsLoading(true);
-
-      // Add user message
-      const userMessage: Message = {
-        id: generateId(),
-        role: "user",
-        content: trimmedInput,
-      };
-
-      // Add placeholder assistant message
-      const assistantMessage: Message = {
-        id: generateId(),
-        role: "assistant",
-        content: "",
-        isStreaming: true,
-      };
-
-      const newMessages = [...messages, userMessage];
-      setMessages([...newMessages, assistantMessage]);
-
-      try {
-        await api.sendMessage(
-          trimmedInput,
-          [...newMessages, { id: assistantMessage.id, role: "user", content: trimmedInput }],
-          (text) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessage.id
-                  ? { ...m, content: text }
-                  : m
-              )
+      switch (data.type) {
+        case "widget:ready":
+          setIsReady(true);
+          // Send open message if already open when iframe becomes ready
+          if (isOpen && iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(
+              { type: "widget:open" },
+              apiUrl
             );
-          },
-          agent
-        );
-
-        // Mark streaming as complete
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMessage.id
-              ? { ...m, isStreaming: false }
-              : m
-          )
-        );
-      } catch (error) {
-        console.error("Failed to send message:", error);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMessage.id
-              ? {
-                  ...m,
-                  content: "Sorry, something went wrong. Please try again.",
-                  isStreaming: false,
-                }
-              : m
-          )
-        );
-      } finally {
-        setIsLoading(false);
+          }
+          break;
+        case "widget:close":
+          setIsOpen(false);
+          break;
+        case "widget:resize":
+          // Could implement dynamic height adjustment here if needed
+          break;
       }
-    },
-    [input, isLoading, messages, api, agent]
-  );
+    }
 
-  const positionStyles = getPositionStyles(widgetConfig.position);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [apiUrl, isOpen]);
+
+  // Notify iframe when open state changes
+  useEffect(() => {
+    if (!isReady || !iframeRef.current?.contentWindow) return;
+
+    const message = isOpen ? { type: "widget:open" } : { type: "widget:close" };
+    iframeRef.current.contentWindow.postMessage(message, apiUrl);
+  }, [isOpen, isReady, apiUrl]);
+
+  const toggleOpen = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const positionStyles = getPositionStyles(config.position);
+  const iframePositionStyles = getIframePositionStyles(config.position);
 
   // Base styles to reset any host page styles
   const resetStyles: React.CSSProperties = {
     all: "initial",
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    fontSize: "14px",
-    lineHeight: "1.5",
-    color: "#1f2937",
     boxSizing: "border-box",
   };
 
   return (
     <div style={{ ...resetStyles, ...positionStyles }}>
-      {/* Chat Window */}
+      {/* Chat Window (iframe) */}
       {isOpen && (
         <div
           style={{
             ...resetStyles,
-            position: "absolute",
-            bottom: "70px",
-            right: "0",
-            width: "380px",
-            maxWidth: "calc(100vw - 40px)",
-            height: "520px",
-            maxHeight: "calc(100vh - 120px)",
-            backgroundColor: "#ffffff",
+            ...iframePositionStyles,
             borderRadius: "16px",
             boxShadow:
               "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
-            display: "flex",
-            flexDirection: "column",
             overflow: "hidden",
+            backgroundColor: "#ffffff",
           }}
         >
-          {/* Header */}
-          <div
+          <iframe
+            ref={iframeRef}
+            src={iframeUrl}
+            title="Chat Widget"
             style={{
-              ...resetStyles,
-              backgroundColor: widgetConfig.primaryColor,
-              color: "#ffffff",
-              padding: "16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              flexShrink: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+              display: "block",
             }}
-          >
-            {widgetConfig.avatarUrl ? (
-              <img
-                src={widgetConfig.avatarUrl}
-                alt={agent.name}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  ...resetStyles,
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(255, 255, 255, 0.2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: "#ffffff",
-                }}
-              >
-                {agent.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: "600", fontSize: "16px" }}>
-                {agent.name}
-              </div>
-            </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                ...resetStyles,
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#ffffff",
-                fontSize: "20px",
-              }}
-              aria-label="Close chat"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div
-            style={{
-              ...resetStyles,
-              flex: 1,
-              overflowY: "auto",
-              padding: "16px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              backgroundColor: "#f9fafb",
-            }}
-          >
-            {/* Welcome message */}
-            {messages.length === 0 && (
-              <div
-                style={{
-                  ...resetStyles,
-                  maxWidth: "80%",
-                  padding: "12px 16px",
-                  borderRadius: "16px",
-                  backgroundColor: "#ffffff",
-                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                }}
-              >
-                {widgetConfig.welcomeMessage}
-              </div>
-            )}
-
-            {/* Message list */}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                style={{
-                  ...resetStyles,
-                  display: "flex",
-                  justifyContent:
-                    message.role === "user" ? "flex-end" : "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    ...resetStyles,
-                    maxWidth: "80%",
-                    padding: "12px 16px",
-                    borderRadius: "16px",
-                    backgroundColor:
-                      message.role === "user"
-                        ? widgetConfig.primaryColor
-                        : "#ffffff",
-                    color: message.role === "user" ? "#ffffff" : "#1f2937",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {message.content || (message.isStreaming && "...")}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              ...resetStyles,
-              padding: "16px",
-              borderTop: "1px solid #e5e7eb",
-              backgroundColor: "#ffffff",
-              display: "flex",
-              gap: "8px",
-              flexShrink: 0,
-            }}
-          >
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={widgetConfig.placeholderText}
-              disabled={isLoading}
-              style={{
-                ...resetStyles,
-                flex: 1,
-                padding: "12px 16px",
-                borderRadius: "24px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#f9fafb",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              style={{
-                ...resetStyles,
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                backgroundColor:
-                  isLoading || !input.trim()
-                    ? "#d1d5db"
-                    : widgetConfig.primaryColor,
-                border: "none",
-                cursor: isLoading || !input.trim() ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#ffffff",
-                flexShrink: 0,
-              }}
-              aria-label="Send message"
-            >
-              {isLoading ? (
-                <span
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    border: "2px solid #ffffff",
-                    borderTopColor: "transparent",
-                    borderRadius: "50%",
-                    display: "inline-block",
-                    animation: "cb-widget-spin 1s linear infinite",
-                  }}
-                />
-              ) : (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              )}
-            </button>
-          </form>
+            allow="clipboard-write"
+          />
         </div>
       )}
 
       {/* Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
         style={{
           ...resetStyles,
           width: "60px",
           height: "60px",
           borderRadius: "50%",
-          backgroundColor: widgetConfig.primaryColor,
+          backgroundColor: config.primaryColor,
           border: "none",
           cursor: "pointer",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -437,16 +218,6 @@ export function Widget({ agent, api }: WidgetProps) {
           </svg>
         )}
       </button>
-
-      {/* Keyframes for spinner animation */}
-      <style>
-        {`
-          @keyframes cb-widget-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 }
