@@ -29,6 +29,7 @@ export interface PlanConfig {
   stripePriceId: string | null; // null for free plan
   messageCreditsLimit: number;
   storageLimitKb: number;
+  agentLimit: number; // -1 = unlimited
   priceMonthly: number; // in cents
 }
 
@@ -38,6 +39,7 @@ export const PLAN_CONFIG: Record<Plan, PlanConfig> = {
     stripePriceId: null,
     messageCreditsLimit: 1000,
     storageLimitKb: 100_000, // 100 MB
+    agentLimit: 1,
     priceMonthly: 0,
   },
   hobby: {
@@ -45,6 +47,7 @@ export const PLAN_CONFIG: Record<Plan, PlanConfig> = {
     stripePriceId: process.env.STRIPE_HOBBY_PRICE_ID ?? "price_hobby",
     messageCreditsLimit: 5000,
     storageLimitKb: 500_000, // 500 MB
+    agentLimit: 3,
     priceMonthly: 4000, // $40
   },
   standard: {
@@ -52,6 +55,7 @@ export const PLAN_CONFIG: Record<Plan, PlanConfig> = {
     stripePriceId: process.env.STRIPE_STANDARD_PRICE_ID ?? "price_standard",
     messageCreditsLimit: 25000,
     storageLimitKb: 2_000_000, // 2 GB
+    agentLimit: 10,
     priceMonthly: 15000, // $150
   },
   pro: {
@@ -59,6 +63,7 @@ export const PLAN_CONFIG: Record<Plan, PlanConfig> = {
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? "price_pro",
     messageCreditsLimit: 100000,
     storageLimitKb: 10_000_000, // 10 GB
+    agentLimit: -1, // unlimited
     priceMonthly: 50000, // $500
   },
 };

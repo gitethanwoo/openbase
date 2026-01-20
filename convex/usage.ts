@@ -73,3 +73,87 @@ export const getUsageEvents = query({
     return events;
   },
 });
+
+/**
+ * Get usage summary for dashboard display.
+ * Returns all usage metrics for an organization.
+ */
+export const getUsageSummary = query({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      return null;
+    }
+
+    // Get total conversations
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_organizationId_agentId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+
+    // Get total sources across all agents
+    const sources = await ctx.db
+      .query("sources")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("organizationId"), args.organizationId),
+          q.eq(q.field("deletedAt"), undefined)
+        )
+      )
+      .collect();
+
+    // Get messages from today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.getTime();
+
+    const messagesQuery = await ctx.db
+      .query("messages")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("organizationId"), args.organizationId),
+          q.gte(q.field("createdAt"), todayTimestamp)
+        )
+      )
+      .collect();
+
+    const messagesToday = messagesQuery.filter((m) => m.role === "assistant").length;
+
+    return {
+      // Plan info
+      plan: org.plan,
+      billingCycleStart: org.billingCycleStart,
+
+      // Message credits
+      messageCreditsUsed: org.messageCreditsUsed,
+      messageCreditsLimit: org.messageCreditsLimit,
+      messageCreditsPercent: Math.round(
+        (org.messageCreditsUsed / org.messageCreditsLimit) * 100
+      ),
+
+      // Storage
+      storageUsedKb: org.storageUsedKb,
+      storageLimitKb: org.storageLimitKb,
+      storagePercent: Math.round(
+        (org.storageUsedKb / org.storageLimitKb) * 100
+      ),
+
+      // Agents
+      agentCount: org.agentCount,
+      agentLimit: org.agentLimit,
+      agentPercent: org.agentLimit === -1 ? 0 : Math.round(
+        (org.agentCount / org.agentLimit) * 100
+      ),
+
+      // Activity metrics
+      totalConversations: conversations.length,
+      totalSources: sources.length,
+      messagesToday,
+    };
+  },
+});

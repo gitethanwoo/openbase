@@ -9,10 +9,10 @@ import Stripe from "stripe";
  * This must match the PLAN_CONFIG in src/lib/stripe.ts
  */
 const PLAN_LIMITS = {
-  free: { messageCreditsLimit: 1000, storageLimitKb: 100_000 },
-  hobby: { messageCreditsLimit: 5000, storageLimitKb: 500_000 },
-  standard: { messageCreditsLimit: 25000, storageLimitKb: 2_000_000 },
-  pro: { messageCreditsLimit: 100000, storageLimitKb: 10_000_000 },
+  free: { messageCreditsLimit: 1000, storageLimitKb: 100_000, agentLimit: 1 },
+  hobby: { messageCreditsLimit: 5000, storageLimitKb: 500_000, agentLimit: 3 },
+  standard: { messageCreditsLimit: 25000, storageLimitKb: 2_000_000, agentLimit: 10 },
+  pro: { messageCreditsLimit: 100000, storageLimitKb: 10_000_000, agentLimit: -1 }, // -1 = unlimited
 } as const;
 
 type PlanType = keyof typeof PLAN_LIMITS;
@@ -42,6 +42,8 @@ export const getBillingStatus = query({
       messageCreditsLimit: org.messageCreditsLimit,
       storageUsedKb: org.storageUsedKb,
       storageLimitKb: org.storageLimitKb,
+      agentCount: org.agentCount,
+      agentLimit: org.agentLimit,
       billingCycleStart: org.billingCycleStart,
     };
   },
@@ -101,6 +103,7 @@ export const updateSubscription = internalMutation({
         plan: plan,
         messageCreditsLimit: limits.messageCreditsLimit,
         storageLimitKb: limits.storageLimitKb,
+        agentLimit: limits.agentLimit,
       });
     }
 
@@ -129,6 +132,7 @@ export const handleSubscriptionCancelled = internalMutation({
       plan: "free",
       messageCreditsLimit: freeLimits.messageCreditsLimit,
       storageLimitKb: freeLimits.storageLimitKb,
+      agentLimit: freeLimits.agentLimit,
     });
 
     return args.organizationId;

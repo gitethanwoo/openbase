@@ -38,6 +38,8 @@ export const createTestData = mutation({
         messageCreditsLimit: 1000,
         storageUsedKb: 0,
         storageLimitKb: 100000,
+        agentCount: 0,
+        agentLimit: 1,
         billingCycleStart: now,
         defaultModel: "openai/gpt-4o-mini",
         createdAt: now,

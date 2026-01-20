@@ -295,6 +295,14 @@ export const updateMessageAfterStream = internalMutation({
               idempotencyKey: idempotencyKey,
               createdAt: Date.now(),
             });
+
+            // Increment message credits used for the organization
+            const org = await ctx.db.get(message.organizationId);
+            if (org && !org.deletedAt) {
+              await ctx.db.patch(message.organizationId, {
+                messageCreditsUsed: org.messageCreditsUsed + 1,
+              });
+            }
           }
         }
       }

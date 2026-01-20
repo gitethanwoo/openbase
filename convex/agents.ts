@@ -89,6 +89,13 @@ export const createAgent = mutation({
       throw new Error("Organization not found");
     }
 
+    // Check agent limit (agentLimit of -1 means unlimited)
+    if (org.agentLimit !== -1 && org.agentCount >= org.agentLimit) {
+      throw new Error(
+        `Agent limit reached. Your plan allows ${org.agentLimit} agent${org.agentLimit === 1 ? "" : "s"}. Please upgrade to create more agents.`
+      );
+    }
+
     // Generate slug from name
     const baseSlug = args.name
       .toLowerCase()
@@ -134,6 +141,11 @@ export const createAgent = mutation({
       version: 1,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Increment agent count for the organization
+    await ctx.db.patch(args.organizationId, {
+      agentCount: org.agentCount + 1,
     });
 
     return agentId;
@@ -249,6 +261,14 @@ export const deleteAgent = mutation({
       updatedAt: Date.now(),
       status: "archived",
     });
+
+    // Decrement agent count for the organization
+    const org = await ctx.db.get(agent.organizationId);
+    if (org && !org.deletedAt && org.agentCount > 0) {
+      await ctx.db.patch(agent.organizationId, {
+        agentCount: org.agentCount - 1,
+      });
+    }
 
     return args.agentId;
   },

@@ -262,6 +262,8 @@ export interface Organization {
   messageCreditsLimit: number;
   storageUsedKb: number;
   storageLimitKb: number;
+  agentCount: number;
+  agentLimit: number;
   billingCycleStart: number;
   defaultModel: string;
   createdAt: number;

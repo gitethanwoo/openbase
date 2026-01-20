@@ -16,6 +16,8 @@ export default defineSchema({
     messageCreditsLimit: v.number(),
     storageUsedKb: v.number(),
     storageLimitKb: v.number(),
+    agentCount: v.number(),
+    agentLimit: v.number(),
     billingCycleStart: v.number(),
     defaultModel: v.string(),
     createdAt: v.number(),

@@ -6,9 +6,10 @@ import {
   getCurrentOrganizationId,
   setCurrentOrganizationId,
 } from "@/lib/organization-session";
-import { DashboardLayout } from "@/components/dashboard";
+import { DashboardLayout, UsageStats } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConvexProvider } from "@/components/providers/convex-provider";
 
 type OrganizationWithRole = Doc<"organizations"> & {
   userRole: string;
@@ -82,48 +83,11 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Agents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Chat Sessions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Sources
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Messages Today
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-            </CardContent>
-          </Card>
-        </div>
+        {currentOrgId && (
+          <ConvexProvider>
+            <UsageStats organizationId={currentOrgId as Id<"organizations">} />
+          </ConvexProvider>
+        )}
       </div>
     </DashboardLayout>
   );

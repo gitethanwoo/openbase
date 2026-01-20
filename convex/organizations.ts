@@ -35,6 +35,8 @@ export const createOrganization = mutation({
       messageCreditsLimit: 1000,
       storageUsedKb: 0,
       storageLimitKb: 100000, // 100MB
+      agentCount: 0,
+      agentLimit: 1, // Free plan allows 1 agent
       billingCycleStart: now,
       defaultModel: "openai/gpt-4o-mini",
       createdAt: now,
@@ -199,6 +201,8 @@ export const createDefaultOrganization = internalMutation({
       messageCreditsLimit: 1000,
       storageUsedKb: 0,
       storageLimitKb: 100000,
+      agentCount: 0,
+      agentLimit: 1, // Free plan allows 1 agent
       billingCycleStart: now,
       defaultModel: "openai/gpt-4o-mini",
       createdAt: now,
