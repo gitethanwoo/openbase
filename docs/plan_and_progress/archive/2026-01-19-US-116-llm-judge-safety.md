@@ -1,9 +1,9 @@
 # US-116: LLM-as-Judge Safety Evaluation
 
-- Status: In Progress
+- Status: Completed
 - Owner: Claude
 - Started: 2026-01-19
-- Completed:
+- Completed: 2026-01-19
 
 ## Objective
 
@@ -26,24 +26,30 @@ Implement an LLM-as-judge safety evaluation layer that evaluates every assistant
 
 ## Done Criteria
 
-- [ ] Judge function calls secondary LLM (GPT-4o-mini via OpenRouter)
-- [ ] Evaluates: safety, grounding, brand alignment
-- [ ] FAIL responses replaced with configurable fallback
-- [ ] Results logged for review (stored on messages table)
-- [ ] pnpm run typecheck passes
-- [ ] pnpm run lint passes
+- [x] Judge function calls secondary LLM (GPT-4o-mini via OpenRouter)
+- [x] Evaluates: safety, grounding, brand alignment
+- [x] FAIL responses replaced with configurable fallback
+- [x] Results logged for review (stored on messages table)
+- [x] pnpm run typecheck passes
+- [x] pnpm run lint passes
 
 ## Progress
 
 - 2026-01-19: Created plan, starting implementation
+- 2026-01-19: Implementation complete, all tests passing
 
 ## Verification
 
-- Commands run (lint/typecheck/build) and results
+- `pnpm run typecheck` - passes
+- `pnpm run lint` - passes (only warnings in generated files)
 
 ## Outcomes
 
-- What changed (links to PRs/commits)
+- Created `convex/judge.ts` - LLM-as-judge evaluation action
+- Updated `convex/schema.ts` - Added `judgeEvaluation` field to messages table
+- Updated `convex/chatStream.ts` - Integrated judge call after streaming
+- Updated `convex/chat.ts` - Added judgeEvaluation to updateMessageAfterStream
+- Commit: c5e2433
 
 ## Follow-ups
 

@@ -28,11 +28,14 @@ function getFirecrawl(): Firecrawl {
 
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY environment variable is not set");
+      throw new Error("OPENROUTER_API_KEY environment variable is not set");
     }
-    _openai = new OpenAI({ apiKey });
+    _openai = new OpenAI({
+      apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+    });
   }
   return _openai;
 }

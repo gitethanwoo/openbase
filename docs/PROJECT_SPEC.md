@@ -518,15 +518,18 @@ convex:
 
 ```
 curl:
-- [ ] POST file to upload endpoint → returns sourceId
-- [ ] Poll source status: pending → processing → ready
-- [ ] POST website URL → Firecrawl triggers, pages scraped
+- [x] POST file to upload endpoint → returns sourceId (2026-01-19)
+- [x] Poll source status: pending → processing → ready (2026-01-19)
+- [x] POST website URL → Firecrawl triggers, pages scraped (2026-01-19)
 - [ ] POST /api/sources/:id/retrain → job created
 
 convex:
-- [ ] chunks table has embeddings (1536-dim float array)
-- [ ] jobs table shows workflow progress
+- [x] chunks table has embeddings (1536-dim float array) (2026-01-19)
+- [x] jobs table shows workflow progress (2026-01-19)
 - [ ] Deleted source: deletedAt set, chunks remain (soft delete)
+
+Note: Embeddings generated via OpenRouter API using OpenAI SDK with baseURL override.
+Tested workflows complete successfully (status: completed, progress: 100%).
 ```
 
 ---

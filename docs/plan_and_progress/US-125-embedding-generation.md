@@ -57,3 +57,11 @@ $ pnpm run lint
 ## Follow-ups
 
 - None identified
+
+## E2E Testing (2026-01-19)
+
+Verified embedding generation works end-to-end via workflow steps:
+- Workflow step files (`workflows/file-processing/steps.ts`, `workflows/web-scraping/steps.ts`) use OpenAI SDK pointed at OpenRouter (`baseURL: "https://openrouter.ai/api/v1"`)
+- Tested file upload → process → embed flow: **completed successfully** (job status: completed, progress: 100%)
+- Tested web scraping → chunk → embed flow: **completed successfully** (job status: completed, progress: 100%)
+- Environment variable: `OPENROUTER_API_KEY` (not `OPENAI_API_KEY`)
