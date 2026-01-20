@@ -12,6 +12,27 @@ const openrouter = createOpenRouter({
 // Convex client for server-side operations
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+/**
+ * CORS headers for widget API
+ */
+function corsHeaders(origin: string | null) {
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Expose-Headers": "X-Conversation-Id",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin");
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(origin),
+  });
+}
+
 interface ChatRequest {
   messages: ModelMessage[];
   conversationId?: string;
@@ -25,6 +46,7 @@ interface ChatRequest {
 }
 
 export async function POST(req: Request) {
+  const origin = req.headers.get("origin");
   const body: ChatRequest = await req.json();
   const {
     messages,
@@ -43,7 +65,7 @@ export async function POST(req: Request) {
   if (!lastUserMessage) {
     return new Response(JSON.stringify({ error: "No user message found" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
     });
   }
 
@@ -142,8 +164,14 @@ export async function POST(req: Request) {
     },
   });
 
-  // Return streaming response
+  // Return streaming response with CORS headers
   const response = result.toTextStreamResponse();
+
+  // Add CORS headers
+  const headers = corsHeaders(origin);
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value);
+  }
 
   // Add conversation ID to response headers for client to track
   if (activeConversationId) {

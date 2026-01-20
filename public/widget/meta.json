@@ -1,0 +1,207 @@
+{
+  "inputs": {
+    "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/cjs/scheduler.production.js": {
+      "bytes": 10181,
+      "imports": [],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/index.js": {
+      "bytes": 194,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/cjs/scheduler.production.js",
+          "kind": "require-call",
+          "original": "./cjs/scheduler.production.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react.production.js": {
+      "bytes": 17217,
+      "imports": [],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js": {
+      "bytes": 186,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react.production.js",
+          "kind": "require-call",
+          "original": "./cjs/react.production.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom.production.js": {
+      "bytes": 6655,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+          "kind": "require-call",
+          "original": "react"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/index.js": {
+      "bytes": 1359,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom.production.js",
+          "kind": "require-call",
+          "original": "./cjs/react-dom.production.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom-client.production.js": {
+      "bytes": 536016,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/index.js",
+          "kind": "require-call",
+          "original": "scheduler"
+        },
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+          "kind": "require-call",
+          "original": "react"
+        },
+        {
+          "path": "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/index.js",
+          "kind": "require-call",
+          "original": "react-dom"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/client.js": {
+      "bytes": 1373,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom-client.production.js",
+          "kind": "require-call",
+          "original": "./cjs/react-dom-client.production.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react-jsx-runtime.production.js": {
+      "bytes": 976,
+      "imports": [],
+      "format": "cjs"
+    },
+    "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js": {
+      "bytes": 210,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react-jsx-runtime.production.js",
+          "kind": "require-call",
+          "original": "./cjs/react-jsx-runtime.production.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    "src/widget/Widget.tsx": {
+      "bytes": 13315,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+          "kind": "import-statement",
+          "original": "react"
+        },
+        {
+          "path": "./api",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js",
+          "kind": "import-statement",
+          "original": "react/jsx-runtime"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/widget/api.ts": {
+      "bytes": 2643,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/widget/index.tsx": {
+      "bytes": 2353,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/client.js",
+          "kind": "import-statement",
+          "original": "react-dom/client"
+        },
+        {
+          "path": "src/widget/Widget.tsx",
+          "kind": "import-statement",
+          "original": "./Widget"
+        },
+        {
+          "path": "src/widget/api.ts",
+          "kind": "import-statement",
+          "original": "./api"
+        },
+        {
+          "path": "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js",
+          "kind": "import-statement",
+          "original": "react/jsx-runtime"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "public/widget/chat.js": {
+      "imports": [],
+      "exports": [],
+      "entryPoint": "src/widget/index.tsx",
+      "inputs": {
+        "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/cjs/scheduler.production.js": {
+          "bytesInOutput": 3638
+        },
+        "node_modules/.pnpm/scheduler@0.27.0/node_modules/scheduler/index.js": {
+          "bytesInOutput": 51
+        },
+        "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react.production.js": {
+          "bytesInOutput": 7590
+        },
+        "node_modules/.pnpm/react@19.2.3/node_modules/react/index.js": {
+          "bytesInOutput": 51
+        },
+        "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom.production.js": {
+          "bytesInOutput": 3343
+        },
+        "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/index.js": {
+          "bytesInOutput": 253
+        },
+        "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/cjs/react-dom-client.production.js": {
+          "bytesInOutput": 176064
+        },
+        "node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom/client.js": {
+          "bytesInOutput": 253
+        },
+        "node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react-jsx-runtime.production.js": {
+          "bytesInOutput": 364
+        },
+        "node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js": {
+          "bytesInOutput": 51
+        },
+        "src/widget/index.tsx": {
+          "bytesInOutput": 936
+        },
+        "src/widget/Widget.tsx": {
+          "bytesInOutput": 6105
+        },
+        "src/widget/api.ts": {
+          "bytesInOutput": 1232
+        }
+      },
+      "bytes": 200517
+    }
+  }
+}
