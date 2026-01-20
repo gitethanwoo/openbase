@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { components } from "./_generated/api";
 import { PersistentTextStreaming, StreamId, StreamIdValidator } from "@convex-dev/persistent-text-streaming";
+import { paginationOptsValidator } from "convex/server";
 
 // Initialize the persistent text streaming component
 export const persistentTextStreaming = new PersistentTextStreaming(
@@ -298,5 +299,50 @@ export const updateMessageAfterStream = internalMutation({
         }
       }
     }
+  },
+});
+
+/**
+ * List conversations with pagination and optional filtering.
+ */
+export const listConversations = query({
+  args: {
+    organizationId: v.id("organizations"),
+    agentId: v.optional(v.id("agents")),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    let baseQuery = ctx.db
+      .query("conversations")
+      .withIndex("by_organizationId_agentId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      );
+
+    // Apply agent filter if specified
+    if (args.agentId) {
+      baseQuery = baseQuery.filter((q) =>
+        q.eq(q.field("agentId"), args.agentId)
+      );
+    }
+
+    // Apply date range filters if specified
+    if (args.startDate) {
+      baseQuery = baseQuery.filter((q) =>
+        q.gte(q.field("createdAt"), args.startDate!)
+      );
+    }
+    if (args.endDate) {
+      baseQuery = baseQuery.filter((q) =>
+        q.lte(q.field("createdAt"), args.endDate!)
+      );
+    }
+
+    const results = await baseQuery
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    return results;
   },
 });
