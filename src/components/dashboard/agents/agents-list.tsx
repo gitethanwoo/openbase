@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { Bot, Plus, Pencil, Trash2 } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Play } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -121,12 +121,17 @@ export function AgentsList({ agents, organizationId }: AgentsListProps) {
                   </p>
                   <div className="flex items-center gap-2 pt-2">
                     <Link
-                      href={`/dashboard/agents/${agent._id}/edit`}
+                      href={`/dashboard/agents/${agent._id}/playground`}
                       className="flex-1"
                     >
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="default" size="sm" className="w-full">
+                        <Play className="h-4 w-4" />
+                        Playground
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/agents/${agent._id}/edit`}>
+                      <Button variant="outline" size="icon-sm">
                         <Pencil className="h-4 w-4" />
-                        Edit
                       </Button>
                     </Link>
                     {showDeleteConfirm === agent._id ? (
