@@ -20,6 +20,186 @@ export const getAgent = query({
 });
 
 /**
+ * List all agents for an organization.
+ */
+export const listAgents = query({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", args.organizationId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .order("desc")
+      .collect();
+
+    return agents;
+  },
+});
+
+/**
+ * Create a new agent.
+ */
+export const createAgent = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    model: v.string(),
+    systemPrompt: v.string(),
+    temperature: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Verify organization exists
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      throw new Error("Organization not found");
+    }
+
+    // Generate slug from name
+    const baseSlug = args.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 30);
+
+    // Ensure slug is unique within organization
+    let slug = baseSlug;
+    let counter = 1;
+    while (true) {
+      const existing = await ctx.db
+        .query("agents")
+        .withIndex("by_organizationId_slug", (q) =>
+          q.eq("organizationId", args.organizationId).eq("slug", slug)
+        )
+        .first();
+
+      if (!existing || existing.deletedAt) break;
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    const now = Date.now();
+
+    const agentId = await ctx.db.insert("agents", {
+      organizationId: args.organizationId,
+      name: args.name,
+      slug,
+      model: args.model,
+      temperature: args.temperature ?? 0.7,
+      systemPrompt: args.systemPrompt,
+      embeddingModel: "text-embedding-3-small",
+      embeddingDimensions: 1536,
+      widgetConfig: {
+        primaryColor: "#6366f1",
+        welcomeMessage: "Hi! How can I help you today?",
+        placeholderText: "Type your message...",
+        position: "bottom-right",
+      },
+      status: "draft",
+      needsRetraining: false,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return agentId;
+  },
+});
+
+/**
+ * Update an existing agent.
+ */
+export const updateAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    name: v.optional(v.string()),
+    model: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
+    temperature: v.optional(v.number()),
+    status: v.optional(v.string()),
+    widgetConfig: v.optional(
+      v.object({
+        primaryColor: v.string(),
+        avatarUrl: v.optional(v.string()),
+        welcomeMessage: v.string(),
+        placeholderText: v.string(),
+        position: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.deletedAt) {
+      throw new Error("Agent not found");
+    }
+
+    const updates: Record<string, unknown> = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.name !== undefined) {
+      updates.name = args.name;
+      // Update slug if name changed
+      const baseSlug = args.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 30);
+
+      let slug = baseSlug;
+      let counter = 1;
+      while (true) {
+        const existing = await ctx.db
+          .query("agents")
+          .withIndex("by_organizationId_slug", (q) =>
+            q.eq("organizationId", agent.organizationId).eq("slug", slug)
+          )
+          .first();
+
+        if (!existing || existing._id === args.agentId || existing.deletedAt) break;
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+      updates.slug = slug;
+    }
+
+    if (args.model !== undefined) updates.model = args.model;
+    if (args.systemPrompt !== undefined) updates.systemPrompt = args.systemPrompt;
+    if (args.temperature !== undefined) updates.temperature = args.temperature;
+    if (args.status !== undefined) updates.status = args.status;
+    if (args.widgetConfig !== undefined) updates.widgetConfig = args.widgetConfig;
+
+    await ctx.db.patch(args.agentId, updates);
+
+    return args.agentId;
+  },
+});
+
+/**
+ * Soft delete an agent.
+ */
+export const deleteAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.deletedAt) {
+      throw new Error("Agent not found");
+    }
+
+    await ctx.db.patch(args.agentId, {
+      deletedAt: Date.now(),
+      updatedAt: Date.now(),
+      status: "archived",
+    });
+
+    return args.agentId;
+  },
+});
+
+/**
  * Trigger retraining for an agent.
  * This re-embeds sources whose contentHash has changed since last embedding.
  */
