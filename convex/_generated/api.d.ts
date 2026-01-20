@@ -14,6 +14,7 @@ import type * as chat from "../chat.js";
 import type * as chatApi from "../chatApi.js";
 import type * as chatStream from "../chatStream.js";
 import type * as chunks from "../chunks.js";
+import type * as cors from "../cors.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as judge from "../judge.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   chatApi: typeof chatApi;
   chatStream: typeof chatStream;
   chunks: typeof chunks;
+  cors: typeof cors;
   http: typeof http;
   jobs: typeof jobs;
   judge: typeof judge;

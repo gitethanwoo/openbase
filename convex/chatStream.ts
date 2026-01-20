@@ -15,6 +15,7 @@ import {
 } from "./openrouter";
 import { FALLBACK_RESPONSE } from "./judge";
 import { logChatCompletion } from "./braintrust";
+import { validateOrigin, createForbiddenResponse } from "./cors";
 
 // Initialize the persistent text streaming component
 const persistentTextStreaming = new PersistentTextStreaming(
@@ -72,6 +73,19 @@ export const streamChat = httpAction(async (ctx, request) => {
         "Access-Control-Allow-Origin": "*",
       },
     });
+  }
+
+  // Validate origin against organization's allowedDomains
+  const origin = request.headers.get("origin");
+  const org = await ctx.runQuery(api.organizations.getOrganization, {
+    organizationId: conversation.organizationId,
+  });
+
+  if (org) {
+    const { allowed } = validateOrigin(origin, org.allowedDomains);
+    if (!allowed) {
+      return createForbiddenResponse(origin);
+    }
   }
 
   // Get conversation history for context

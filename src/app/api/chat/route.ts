@@ -3,6 +3,7 @@ import { streamText, type ModelMessage } from "ai";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { validateOrigin, createForbiddenResponse } from "@/lib/cors";
 
 // Create OpenRouter client
 const openrouter = createOpenRouter({
@@ -59,6 +60,23 @@ export async function POST(req: Request) {
     systemPrompt,
     skipJudge = false,
   } = body;
+
+  // Validate origin against organization's allowedDomains
+  if (organizationId) {
+    const org = await convex.query(api.organizations.getOrganization, {
+      organizationId: organizationId as Id<"organizations">,
+    });
+
+    if (org) {
+      const { allowed, corsOrigin } = validateOrigin(
+        origin,
+        org.allowedDomains
+      );
+      if (!allowed) {
+        return createForbiddenResponse(corsOrigin);
+      }
+    }
+  }
 
   // Get the last user message
   const lastUserMessage = messages.filter((m) => m.role === "user").pop();

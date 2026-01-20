@@ -1,6 +1,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { validateOrigin, createForbiddenResponse } from "@/lib/cors";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -57,6 +58,21 @@ export async function GET(
           ...corsHeaders(origin),
         },
       });
+    }
+
+    // Validate origin against organization's allowedDomains
+    const org = await convex.query(api.organizations.getOrganization, {
+      organizationId: agent.organizationId,
+    });
+
+    if (org) {
+      const { allowed, corsOrigin } = validateOrigin(
+        origin,
+        org.allowedDomains
+      );
+      if (!allowed) {
+        return createForbiddenResponse(corsOrigin);
+      }
     }
 
     // Return agent data for widget initialization
