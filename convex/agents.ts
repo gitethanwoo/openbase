@@ -20,6 +20,39 @@ export const getAgent = query({
 });
 
 /**
+ * Get an agent by slug for public help page.
+ * Searches across all organizations. If multiple agents have the same slug,
+ * returns the first active one found.
+ */
+export const getAgentBySlug = query({
+  args: {
+    slug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Query all agents with this slug
+    const agents = await ctx.db
+      .query("agents")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("slug"), args.slug),
+          q.eq(q.field("deletedAt"), undefined)
+        )
+      )
+      .collect();
+
+    // Find the first active agent (prefer active over draft/paused)
+    const activeAgent = agents.find((a) => a.status === "active");
+    if (activeAgent) {
+      return activeAgent;
+    }
+
+    // If no active agent, return the first non-archived one
+    const nonArchivedAgent = agents.find((a) => a.status !== "archived");
+    return nonArchivedAgent ?? null;
+  },
+});
+
+/**
  * List all agents for an organization.
  */
 export const listAgents = query({
