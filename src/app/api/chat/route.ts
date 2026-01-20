@@ -76,6 +76,28 @@ export async function POST(req: Request) {
         return createForbiddenResponse(corsOrigin);
       }
     }
+
+    // Check message limit before processing
+    const limitCheck = await convex.query(api.usage.checkMessageLimit, {
+      organizationId: organizationId as Id<"organizations">,
+    });
+
+    if (!limitCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "message_limit_exceeded",
+          message: limitCheck.reason,
+          creditsUsed: limitCheck.creditsUsed,
+          creditsLimit: limitCheck.creditsLimit,
+          plan: limitCheck.plan,
+          upgradeUrl: "/dashboard/settings/billing",
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
+        }
+      );
+    }
   }
 
   // Get the last user message

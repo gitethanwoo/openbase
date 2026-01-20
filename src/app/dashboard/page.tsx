@@ -6,7 +6,7 @@ import {
   getCurrentOrganizationId,
   setCurrentOrganizationId,
 } from "@/lib/organization-session";
-import { DashboardLayout, UsageStats } from "@/components/dashboard";
+import { DashboardLayout, UsageStats, UsageLimitBanner } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConvexProvider } from "@/components/providers/convex-provider";
@@ -85,6 +85,7 @@ export default async function DashboardPage() {
 
         {currentOrgId && (
           <ConvexProvider>
+            <UsageLimitBanner organizationId={currentOrgId as Id<"organizations">} />
             <UsageStats organizationId={currentOrgId as Id<"organizations">} />
           </ConvexProvider>
         )}

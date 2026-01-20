@@ -75,6 +75,43 @@ export const getUsageEvents = query({
 });
 
 /**
+ * Check if an organization has exceeded their message limit.
+ * Used by the chat API to block messages when limit is reached.
+ */
+export const checkMessageLimit = query({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      return {
+        allowed: false,
+        reason: "Organization not found",
+        creditsUsed: 0,
+        creditsLimit: 0,
+      };
+    }
+
+    const exceeded = org.messageCreditsUsed >= org.messageCreditsLimit;
+    const percentUsed = Math.round(
+      (org.messageCreditsUsed / org.messageCreditsLimit) * 100
+    );
+
+    return {
+      allowed: !exceeded,
+      reason: exceeded
+        ? `Message limit exceeded. You've used ${org.messageCreditsUsed.toLocaleString()} of ${org.messageCreditsLimit.toLocaleString()} message credits this billing cycle.`
+        : null,
+      creditsUsed: org.messageCreditsUsed,
+      creditsLimit: org.messageCreditsLimit,
+      percentUsed,
+      plan: org.plan,
+    };
+  },
+});
+
+/**
  * Get usage summary for dashboard display.
  * Returns all usage metrics for an organization.
  */
