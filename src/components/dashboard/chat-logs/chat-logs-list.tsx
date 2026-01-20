@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import {
   MessageSquare,
@@ -11,6 +11,10 @@ import {
   Bot,
   Calendar,
   Filter,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -23,7 +27,17 @@ import {
 } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { formatRelativeTime, formatDateTime } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { formatRelativeTime, formatDateTime, formatDateISO } from "@/lib/utils";
+import { exportToCSV, exportToJSON, downloadFile } from "@/lib/export";
 
 interface ChatLogsListProps {
   organizationId: string;
@@ -38,10 +52,24 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  // Export dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState<string>("");
+  const [exportEndDate, setExportEndDate] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
+
   // Convert date strings to timestamps for the query
   const startTimestamp = startDate ? new Date(startDate).getTime() : undefined;
   const endTimestamp = endDate
     ? new Date(endDate + "T23:59:59").getTime()
+    : undefined;
+
+  // Export date range timestamps
+  const exportStartTimestamp = exportStartDate
+    ? new Date(exportStartDate).getTime()
+    : undefined;
+  const exportEndTimestamp = exportEndDate
+    ? new Date(exportEndDate + "T23:59:59").getTime()
     : undefined;
 
   const {
@@ -61,6 +89,18 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
     { initialNumItems: PAGE_SIZE }
   );
 
+  // Fetch conversations for export (only when dialog is open)
+  const exportData = useQuery(
+    api.chat.exportConversations,
+    exportDialogOpen
+      ? {
+          organizationId: organizationId as Id<"organizations">,
+          startDate: exportStartTimestamp,
+          endDate: exportEndTimestamp,
+        }
+      : "skip"
+  );
+
   const clearFilters = () => {
     setSelectedAgentId("");
     setStartDate("");
@@ -72,6 +112,33 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
   // Create agent lookup map
   const agentMap = new Map(agents.map((a) => [a._id, a]));
 
+  const handleExport = (format: "csv" | "json") => {
+    if (!exportData) return;
+
+    setIsExporting(true);
+
+    const dateStr = formatDateISO(new Date());
+    const filename = `conversations-export-${dateStr}`;
+
+    if (format === "csv") {
+      const csvContent = exportToCSV(exportData);
+      downloadFile(csvContent, `${filename}.csv`, "text/csv;charset=utf-8;");
+    } else {
+      const jsonContent = exportToJSON(exportData);
+      downloadFile(jsonContent, `${filename}.json`, "application/json");
+    }
+
+    setIsExporting(false);
+    setExportDialogOpen(false);
+  };
+
+  const openExportDialog = () => {
+    // Pre-fill with current filter dates if set
+    setExportStartDate(startDate);
+    setExportEndDate(endDate);
+    setExportDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -81,6 +148,79 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
             View and monitor all conversations with your agents.
           </p>
         </div>
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" onClick={openExportDialog}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Export Conversations</DialogTitle>
+              <DialogDescription>
+                Export conversation data for external analysis. Choose a date
+                range and format.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Start Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={exportStartDate}
+                    onChange={(e) => setExportStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    End Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={exportEndDate}
+                    onChange={(e) => setExportEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              {exportData !== undefined && (
+                <p className="text-sm text-muted-foreground">
+                  {exportData.length} conversation
+                  {exportData.length === 1 ? "" : "s"} will be exported
+                  {exportData.length > 0
+                    ? ` (${exportData.reduce((sum, c) => sum + c.messages.length, 0)} messages)`
+                    : ""}
+                </p>
+              )}
+              {exportData === undefined && exportDialogOpen && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading conversations...
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => handleExport("csv")}
+                disabled={!exportData || exportData.length === 0 || isExporting}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={() => handleExport("json")}
+                disabled={!exportData || exportData.length === 0 || isExporting}
+              >
+                <FileJson className="h-4 w-4" />
+                Export JSON
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}

@@ -303,6 +303,68 @@ export const updateMessageAfterStream = internalMutation({
 });
 
 /**
+ * Export conversations with all their messages for a given date range.
+ * Returns conversations with embedded messages for CSV/JSON export.
+ */
+export const exportConversations = query({
+  args: {
+    organizationId: v.id("organizations"),
+    agentId: v.optional(v.id("agents")),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    let conversationsQuery = ctx.db
+      .query("conversations")
+      .withIndex("by_organizationId_agentId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      );
+
+    // Apply agent filter if specified
+    if (args.agentId) {
+      conversationsQuery = conversationsQuery.filter((q) =>
+        q.eq(q.field("agentId"), args.agentId)
+      );
+    }
+
+    // Apply date range filters if specified
+    if (args.startDate) {
+      conversationsQuery = conversationsQuery.filter((q) =>
+        q.gte(q.field("createdAt"), args.startDate!)
+      );
+    }
+    if (args.endDate) {
+      conversationsQuery = conversationsQuery.filter((q) =>
+        q.lte(q.field("createdAt"), args.endDate!)
+      );
+    }
+
+    const conversations = await conversationsQuery.order("desc").collect();
+
+    // Fetch all messages for these conversations
+    const conversationsWithMessages = await Promise.all(
+      conversations.map(async (conversation) => {
+        const messages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversationId", (q) =>
+            q.eq("conversationId", conversation._id)
+          )
+          .collect();
+
+        const sortedMessages = messages.sort((a, b) => a.createdAt - b.createdAt);
+
+        return {
+          ...conversation,
+          messages: sortedMessages,
+        };
+      })
+    );
+
+    return conversationsWithMessages;
+  },
+});
+
+/**
  * List conversations with pagination and optional filtering.
  */
 export const listConversations = query({
