@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Settings } from "lucide-react";
 
 interface AgentFormProps {
   organizationId: string;
@@ -188,6 +190,14 @@ export function AgentForm({ organizationId, agent }: AgentFormProps) {
                   ? "Save Changes"
                   : "Create Agent"}
             </Button>
+            {isEditing && (
+              <Link href={`/dashboard/agents/${agent._id}/settings`}>
+                <Button type="button" variant="outline">
+                  <Settings className="h-4 w-4" />
+                  Widget Settings
+                </Button>
+              </Link>
+            )}
             <Button
               type="button"
               variant="outline"

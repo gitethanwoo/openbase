@@ -124,6 +124,7 @@ export const updateOrganization = mutation({
     slug: v.optional(v.string()),
     vertical: v.optional(v.string()),
     defaultModel: v.optional(v.string()),
+    allowedDomains: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const org = await ctx.db.get(args.organizationId);
@@ -144,11 +145,12 @@ export const updateOrganization = mutation({
       }
     }
 
-    const updates: Record<string, string> = {};
+    const updates: Record<string, unknown> = {};
     if (args.name !== undefined) updates.name = args.name;
     if (args.slug !== undefined) updates.slug = args.slug;
     if (args.vertical !== undefined) updates.vertical = args.vertical;
     if (args.defaultModel !== undefined) updates.defaultModel = args.defaultModel;
+    if (args.allowedDomains !== undefined) updates.allowedDomains = args.allowedDomains;
 
     await ctx.db.patch(args.organizationId, updates);
 
