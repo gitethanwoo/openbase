@@ -18,10 +18,12 @@ import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as judge from "../judge.js";
 import type * as openrouter from "../openrouter.js";
+import type * as organizations from "../organizations.js";
 import type * as rag from "../rag.js";
 import type * as sources from "../sources.js";
 import type * as testHelpers from "../testHelpers.js";
 import type * as usage from "../usage.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -40,10 +42,12 @@ declare const fullApi: ApiFromModules<{
   jobs: typeof jobs;
   judge: typeof judge;
   openrouter: typeof openrouter;
+  organizations: typeof organizations;
   rag: typeof rag;
   sources: typeof sources;
   testHelpers: typeof testHelpers;
   usage: typeof usage;
+  users: typeof users;
 }>;
 
 /**
