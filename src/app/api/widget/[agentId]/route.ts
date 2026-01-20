@@ -81,6 +81,7 @@ export async function GET(
       name: agent.name,
       organizationId: agent.organizationId,
       widgetConfig: agent.widgetConfig,
+      leadCaptureConfig: agent.leadCaptureConfig,
     };
 
     return new Response(JSON.stringify(widgetData), {

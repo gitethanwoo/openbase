@@ -39,6 +39,34 @@ export interface WidgetConfig {
 }
 
 // =============================================================================
+// Lead Capture Config Types
+// =============================================================================
+
+export type LeadCaptureFieldType = "text" | "email" | "phone" | "textarea" | "select";
+
+export type LeadCaptureTriggerMode = "after_messages" | "before_chat" | "manual";
+
+export interface LeadCaptureField {
+  id: string;
+  type: LeadCaptureFieldType;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[]; // For select fields
+}
+
+export interface LeadCaptureConfig {
+  enabled: boolean;
+  triggerMode: LeadCaptureTriggerMode;
+  triggerAfterMessages?: number;
+  title: string;
+  description?: string;
+  fields: LeadCaptureField[];
+  submitButtonText: string;
+  successMessage: string;
+}
+
+// =============================================================================
 // Error Codes
 // =============================================================================
 
@@ -266,6 +294,7 @@ export interface Agent {
   embeddingModel: string;
   embeddingDimensions: number;
   widgetConfig: WidgetConfig;
+  leadCaptureConfig?: LeadCaptureConfig;
   status: AgentStatus;
   needsRetraining: boolean;
   lastTrainedAt?: number;
@@ -355,6 +384,7 @@ export interface Lead {
   _id: Id<"leads">;
   _creationTime: number;
   organizationId: Id<"organizations">;
+  agentId: Id<"agents">;
   conversationId?: Id<"conversations">;
   name?: string;
   email?: string;

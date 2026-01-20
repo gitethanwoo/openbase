@@ -19,6 +19,7 @@ import type * as cors from "../cors.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as judge from "../judge.js";
+import type * as leads from "../leads.js";
 import type * as openrouter from "../openrouter.js";
 import type * as organizations from "../organizations.js";
 import type * as rag from "../rag.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   jobs: typeof jobs;
   judge: typeof judge;
+  leads: typeof leads;
   openrouter: typeof openrouter;
   organizations: typeof organizations;
   rag: typeof rag;

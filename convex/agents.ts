@@ -160,6 +160,27 @@ export const updateAgent = mutation({
         position: v.string(),
       })
     ),
+    leadCaptureConfig: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        triggerMode: v.string(),
+        triggerAfterMessages: v.optional(v.number()),
+        title: v.string(),
+        description: v.optional(v.string()),
+        fields: v.array(
+          v.object({
+            id: v.string(),
+            type: v.string(),
+            label: v.string(),
+            placeholder: v.optional(v.string()),
+            required: v.boolean(),
+            options: v.optional(v.array(v.string())),
+          })
+        ),
+        submitButtonText: v.string(),
+        successMessage: v.string(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -202,6 +223,7 @@ export const updateAgent = mutation({
     if (args.temperature !== undefined) updates.temperature = args.temperature;
     if (args.status !== undefined) updates.status = args.status;
     if (args.widgetConfig !== undefined) updates.widgetConfig = args.widgetConfig;
+    if (args.leadCaptureConfig !== undefined) updates.leadCaptureConfig = args.leadCaptureConfig;
 
     await ctx.db.patch(args.agentId, updates);
 

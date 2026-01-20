@@ -52,6 +52,27 @@ export default defineSchema({
       placeholderText: v.string(),
       position: v.string(),
     }),
+    leadCaptureConfig: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        triggerMode: v.string(), // "after_messages" | "before_chat" | "manual"
+        triggerAfterMessages: v.optional(v.number()), // Number of messages before showing form
+        title: v.string(),
+        description: v.optional(v.string()),
+        fields: v.array(
+          v.object({
+            id: v.string(),
+            type: v.string(), // "text" | "email" | "phone" | "textarea" | "select"
+            label: v.string(),
+            placeholder: v.optional(v.string()),
+            required: v.boolean(),
+            options: v.optional(v.array(v.string())), // For select fields
+          })
+        ),
+        submitButtonText: v.string(),
+        successMessage: v.string(),
+      })
+    ),
     status: v.string(),
     needsRetraining: v.boolean(),
     lastTrainedAt: v.optional(v.number()),
@@ -179,6 +200,7 @@ export default defineSchema({
 
   leads: defineTable({
     organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
     conversationId: v.optional(v.id("conversations")),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -186,7 +208,9 @@ export default defineSchema({
     customFields: v.optional(v.record(v.string(), v.string())),
     source: v.string(),
     createdAt: v.number(),
-  }).index("by_organizationId", ["organizationId"]),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_agentId", ["agentId"]),
 
   webhooks: defineTable({
     organizationId: v.id("organizations"),

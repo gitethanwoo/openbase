@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { LeadCaptureForm } from "./lead-capture-form";
 
 interface WidgetConfig {
   primaryColor: string;
@@ -10,11 +11,32 @@ interface WidgetConfig {
   position: "bottom-right" | "bottom-left" | "top-right" | "top-left";
 }
 
+interface LeadCaptureField {
+  id: string;
+  type: string;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[];
+}
+
+interface LeadCaptureConfig {
+  enabled: boolean;
+  triggerMode: string;
+  triggerAfterMessages?: number;
+  title: string;
+  description?: string;
+  fields: LeadCaptureField[];
+  submitButtonText: string;
+  successMessage: string;
+}
+
 interface AgentData {
   id: string;
   name: string;
   organizationId: string;
   widgetConfig: WidgetConfig;
+  leadCaptureConfig?: LeadCaptureConfig;
 }
 
 interface Message {
@@ -56,10 +78,13 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const visitorIdRef = useRef<string>("");
+  const messageCountRef = useRef<number>(0);
 
   // Initialize visitor ID
   useEffect(() => {
@@ -76,6 +101,14 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
         }
         const data: AgentData = await response.json();
         setAgent(data);
+
+        // Check if lead form should show before chat starts
+        if (
+          data.leadCaptureConfig?.enabled &&
+          data.leadCaptureConfig.triggerMode === "before_chat"
+        ) {
+          setShowLeadForm(true);
+        }
 
         // Notify parent that iframe is ready
         window.parent.postMessage({ type: "widget:ready" }, "*");
@@ -117,6 +150,16 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
   // Send message to parent to request close
   const requestClose = useCallback(() => {
     window.parent.postMessage({ type: "widget:close" }, "*");
+  }, []);
+
+  // Lead form handlers
+  const handleLeadSubmitSuccess = useCallback(() => {
+    setLeadCaptured(true);
+    setShowLeadForm(false);
+  }, []);
+
+  const handleLeadSkip = useCallback(() => {
+    setShowLeadForm(false);
   }, []);
 
   const handleSubmit = useCallback(
@@ -206,6 +249,18 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
             m.id === assistantMessage.id ? { ...m, isStreaming: false } : m
           )
         );
+
+        // Update message count and check if we should show lead form
+        messageCountRef.current += 2; // user + assistant message
+        if (
+          !leadCaptured &&
+          !showLeadForm &&
+          agent.leadCaptureConfig?.enabled &&
+          agent.leadCaptureConfig.triggerMode === "after_messages" &&
+          messageCountRef.current >= (agent.leadCaptureConfig.triggerAfterMessages ?? 3) * 2
+        ) {
+          setShowLeadForm(true);
+        }
       } catch (err) {
         console.error("[EmbedChat] Failed to send message:", err);
         setMessages((prev) =>
@@ -223,7 +278,7 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
         setIsLoading(false);
       }
     },
-    [input, isLoading, messages, agent, agentId, conversationId]
+    [input, isLoading, messages, agent, agentId, conversationId, leadCaptured, showLeadForm]
   );
 
   if (error) {
@@ -411,6 +466,19 @@ export function EmbedChat({ agentId }: EmbedChatProps) {
             </div>
           </div>
         ))}
+
+        {/* Lead capture form */}
+        {showLeadForm && agent.leadCaptureConfig && (
+          <LeadCaptureForm
+            config={agent.leadCaptureConfig}
+            organizationId={agent.organizationId}
+            agentId={agentId}
+            conversationId={conversationId}
+            primaryColor={widgetConfig.primaryColor}
+            onSubmitSuccess={handleLeadSubmitSuccess}
+            onSkip={agent.leadCaptureConfig.triggerMode !== "before_chat" ? handleLeadSkip : undefined}
+          />
+        )}
         <div ref={messagesEndRef} />
       </div>
 
