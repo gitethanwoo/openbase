@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePaginatedQuery } from "convex/react";
+import { useRouter } from "next/navigation";
 import {
   MessageSquare,
   User,
@@ -32,6 +33,7 @@ interface ChatLogsListProps {
 const PAGE_SIZE = 20;
 
 export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
+  const router = useRouter();
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -156,12 +158,13 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
       ) : (
         <div className="space-y-4">
           {/* Table header */}
-          <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-2 text-sm font-medium text-muted-foreground">
+          <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-2 text-sm font-medium text-muted-foreground">
             <div>Visitor</div>
             <div>Agent</div>
             <div>Messages</div>
             <div>Started</div>
             <div>Last Activity</div>
+            <div className="w-5" />
           </div>
 
           {/* Conversation rows */}
@@ -170,10 +173,13 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
             return (
               <Card
                 key={conversation._id}
-                className="hover:bg-muted/50 transition-colors"
+                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() =>
+                  router.push(`/dashboard/chat-logs/${conversation._id}`)
+                }
               >
                 <CardContent className="p-4">
-                  <div className="md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 items-center">
+                  <div className="md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 items-center">
                     {/* Visitor info */}
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -236,6 +242,11 @@ export function ChatLogsList({ organizationId, agents }: ChatLogsListProps) {
                           new Date(conversation.lastMessageAt)
                         )}
                       </span>
+                    </div>
+
+                    {/* Chevron indicator */}
+                    <div className="hidden md:flex items-center justify-end">
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
 
