@@ -1,6 +1,7 @@
 import { handleAuth } from "@workos-inc/authkit-nextjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
+import { setCurrentOrganizationId } from "../../lib/organization-session";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -9,7 +10,8 @@ export const GET = handleAuth({
   onSuccess: async ({ user }) => {
     // Sync user to Convex on login
     // This creates the user and a default organization if they don't exist
-    await convex.mutation(api.users.syncUserOnLogin, {
+    // Returns the user's organizationId so we can set it in the session cookie
+    const result = await convex.mutation(api.users.syncUserOnLogin, {
       workosUserId: user.id,
       email: user.email,
       name: user.firstName
@@ -17,5 +19,8 @@ export const GET = handleAuth({
         : user.email.split("@")[0],
       avatarUrl: user.profilePictureUrl ?? undefined,
     });
+
+    // Set the current organization in the session cookie
+    await setCurrentOrganizationId(result.organizationId);
   },
 });
