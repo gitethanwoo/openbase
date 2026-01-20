@@ -9,6 +9,7 @@
  */
 
 import type * as agents from "../agents.js";
+import type * as analytics from "../analytics.js";
 import type * as braintrust from "../braintrust.js";
 import type * as chat from "../chat.js";
 import type * as chatApi from "../chatApi.js";
@@ -34,6 +35,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
+  analytics: typeof analytics;
   braintrust: typeof braintrust;
   chat: typeof chat;
   chatApi: typeof chatApi;
