@@ -40,23 +40,23 @@ export const PLAN_CONFIG: Record<Plan, PlanConfig> = {
     storageLimitKb: 100_000, // 100 MB
     priceMonthly: 0,
   },
-  starter: {
-    name: "Starter",
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID ?? "price_starter",
+  hobby: {
+    name: "Hobby",
+    stripePriceId: process.env.STRIPE_HOBBY_PRICE_ID ?? "price_hobby",
     messageCreditsLimit: 5000,
     storageLimitKb: 500_000, // 500 MB
     priceMonthly: 4000, // $40
   },
-  pro: {
-    name: "Pro",
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? "price_pro",
+  standard: {
+    name: "Standard",
+    stripePriceId: process.env.STRIPE_STANDARD_PRICE_ID ?? "price_standard",
     messageCreditsLimit: 25000,
     storageLimitKb: 2_000_000, // 2 GB
     priceMonthly: 15000, // $150
   },
-  enterprise: {
-    name: "Enterprise",
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "price_enterprise",
+  pro: {
+    name: "Pro",
+    stripePriceId: process.env.STRIPE_PRO_PRICE_ID ?? "price_pro",
     messageCreditsLimit: 100000,
     storageLimitKb: 10_000_000, // 10 GB
     priceMonthly: 50000, // $500

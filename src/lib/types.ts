@@ -22,7 +22,7 @@ export type Id<TableName extends string> = Brand<string, TableName>;
 
 export type Vertical = "faithbase" | "restaurant" | "legal" | "healthcare" | "ecommerce" | "generic";
 
-export type Plan = "free" | "starter" | "pro" | "enterprise";
+export type Plan = "free" | "hobby" | "standard" | "pro";
 
 // =============================================================================
 // Widget Config Type

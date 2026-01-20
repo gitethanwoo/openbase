@@ -10,9 +10,9 @@ import Stripe from "stripe";
  */
 const PLAN_LIMITS = {
   free: { messageCreditsLimit: 1000, storageLimitKb: 100_000 },
-  starter: { messageCreditsLimit: 5000, storageLimitKb: 500_000 },
-  pro: { messageCreditsLimit: 25000, storageLimitKb: 2_000_000 },
-  enterprise: { messageCreditsLimit: 100000, storageLimitKb: 10_000_000 },
+  hobby: { messageCreditsLimit: 5000, storageLimitKb: 500_000 },
+  standard: { messageCreditsLimit: 25000, storageLimitKb: 2_000_000 },
+  pro: { messageCreditsLimit: 100000, storageLimitKb: 10_000_000 },
 } as const;
 
 type PlanType = keyof typeof PLAN_LIMITS;
@@ -210,13 +210,13 @@ function getStripeClient(): Stripe {
  */
 function getPlanFromPriceId(priceId: string): PlanType | null {
   // Check environment variables for price IDs
-  const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+  const hobbyPriceId = process.env.STRIPE_HOBBY_PRICE_ID;
+  const standardPriceId = process.env.STRIPE_STANDARD_PRICE_ID;
   const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
-  const enterprisePriceId = process.env.STRIPE_ENTERPRISE_PRICE_ID;
 
-  if (priceId === starterPriceId) return "starter";
+  if (priceId === hobbyPriceId) return "hobby";
+  if (priceId === standardPriceId) return "standard";
   if (priceId === proPriceId) return "pro";
-  if (priceId === enterprisePriceId) return "enterprise";
 
   return null;
 }
