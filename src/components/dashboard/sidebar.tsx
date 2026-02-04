@@ -9,8 +9,10 @@ import {
   Database,
   Settings,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signOutAction } from "@/app/actions";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -89,6 +91,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               );
             })}
           </nav>
+
+          {/* Sign out */}
+          <div className="border-t p-4">
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
     </>
