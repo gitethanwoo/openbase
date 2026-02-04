@@ -363,13 +363,30 @@ export const createNotionSource = mutation({
   args: {
     organizationId: v.id("organizations"),
     agentId: v.id("agents"),
-    workosUserId: v.string(),
     pageId: v.string(),
     title: v.string(),
     pageUrl: v.optional(v.string()),
     lastEditedTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const membership = await ctx.db
+      .query("users")
+      .withIndex("by_workosUserId", (q) =>
+        q.eq("workosUserId", identity.subject)
+      )
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .first();
+
+    if (!membership) {
+      throw new Error("Unauthorized");
+    }
+
     if (!args.title.trim()) {
       throw new Error("Page title is required");
     }
@@ -398,7 +415,7 @@ export const createNotionSource = mutation({
       providerResourceId: args.pageId,
       providerResourceUrl: args.pageUrl,
       providerLastModified: args.lastEditedTime,
-      workosUserId: args.workosUserId,
+      workosUserId: identity.subject,
       createdAt: now,
       updatedAt: now,
     });
@@ -414,7 +431,6 @@ export const createGDriveSource = mutation({
   args: {
     organizationId: v.id("organizations"),
     agentId: v.id("agents"),
-    workosUserId: v.string(),
     fileId: v.string(),
     fileName: v.string(),
     mimeType: v.string(),
@@ -423,6 +439,24 @@ export const createGDriveSource = mutation({
     modifiedTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const membership = await ctx.db
+      .query("users")
+      .withIndex("by_workosUserId", (q) =>
+        q.eq("workosUserId", identity.subject)
+      )
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .first();
+
+    if (!membership) {
+      throw new Error("Unauthorized");
+    }
+
     if (!args.fileName.trim()) {
       throw new Error("File name is required");
     }
@@ -453,7 +487,7 @@ export const createGDriveSource = mutation({
       providerResourceId: args.fileId,
       providerResourceUrl: args.webViewLink,
       providerLastModified: args.modifiedTime,
-      workosUserId: args.workosUserId,
+      workosUserId: identity.subject,
       createdAt: now,
       updatedAt: now,
     });

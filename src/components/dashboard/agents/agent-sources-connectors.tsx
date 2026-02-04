@@ -20,7 +20,6 @@ import { Loader2, Cloud, NotebookText, RefreshCcw } from "lucide-react";
 interface AgentSourcesConnectorsProps {
   agentId: string;
   organizationId: string;
-  workosUserId: string;
 }
 
 type NotionPageSummary = {
@@ -63,7 +62,6 @@ function formatDate(timestamp?: string) {
 export function AgentSourcesConnectors({
   agentId,
   organizationId,
-  workosUserId,
 }: AgentSourcesConnectorsProps) {
   const router = useRouter();
   const { accessToken, loading: authLoading, error: authError } = useAccessToken();
@@ -88,7 +86,6 @@ export function AgentSourcesConnectors({
     setNotionError(null);
     try {
       const result = (await listNotionPages({
-        workosUserId,
         limit: 50,
       })) as NotionListResult;
       setNotionResult(result);
@@ -104,7 +101,6 @@ export function AgentSourcesConnectors({
     setGDriveError(null);
     try {
       const result = (await listGDriveFiles({
-        workosUserId,
         limit: 50,
       })) as GDriveListResult;
       setGDriveResult(result);
@@ -125,7 +121,6 @@ export function AgentSourcesConnectors({
       const source = await createNotionSource({
         organizationId: organizationId as Id<"organizations">,
         agentId: agentId as Id<"agents">,
-        workosUserId,
         pageId: page.id,
         title: page.title,
         pageUrl: page.url,
@@ -161,7 +156,6 @@ export function AgentSourcesConnectors({
       const source = await createGDriveSource({
         organizationId: organizationId as Id<"organizations">,
         agentId: agentId as Id<"agents">,
-        workosUserId,
         fileId: file.id,
         fileName: file.name,
         mimeType: file.mimeType,

@@ -121,12 +121,19 @@ function getNotionPageTitle(properties: Record<string, NotionProperty>): string 
 
 export const listNotionPages = action({
   args: {
-    workosUserId: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (_ctx, args): Promise<NotionListResult> => {
+  handler: async (ctx, args): Promise<NotionListResult> => {
     const limit = args.limit ?? 50;
-    const tokenResponse = await getPipesAccessToken(NOTION_PROVIDER, args.workosUserId);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const tokenResponse = await getPipesAccessToken(
+      NOTION_PROVIDER,
+      identity.subject
+    );
 
     if (!tokenResponse.active) {
       return { status: tokenResponse.error, pages: [] };
@@ -218,12 +225,19 @@ function buildMimeTypeQuery(): string {
 
 export const listGDriveFiles = action({
   args: {
-    workosUserId: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (_ctx, args): Promise<GDriveListResult> => {
+  handler: async (ctx, args): Promise<GDriveListResult> => {
     const limit = args.limit ?? 50;
-    const tokenResponse = await getPipesAccessToken(GDRIVE_PROVIDER, args.workosUserId);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const tokenResponse = await getPipesAccessToken(
+      GDRIVE_PROVIDER,
+      identity.subject
+    );
 
     if (!tokenResponse.active) {
       return { status: tokenResponse.error, files: [] };
