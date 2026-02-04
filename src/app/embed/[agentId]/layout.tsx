@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "../../globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Chat Widget",
   description: "Embedded chat widget",
-  // Prevent search engines from indexing iframe content
   robots: "noindex, nofollow",
 };
 
@@ -24,22 +16,17 @@ export default function EmbedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        {/* Allow embedding in iframes */}
-        <meta name="referrer" content="origin" />
-      </head>
-      <body
-        className={`${geistSans.variable} antialiased`}
-        style={{
-          margin: 0,
-          padding: 0,
-          overflow: "hidden",
-          backgroundColor: "transparent",
-        }}
-      >
-        {children}
-      </body>
-    </html>
+    <div
+      style={{
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+        backgroundColor: "transparent",
+        height: "100vh",
+        width: "100vw",
+      }}
+    >
+      {children}
+    </div>
   );
 }

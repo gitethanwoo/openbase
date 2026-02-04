@@ -1,445 +1,716 @@
 {
   "name": "FaithBase",
   "description": "White-label AI chatbot platform - first vertical: churches",
-  "phases": {
-    "0": {
-      "name": "Foundation",
-      "status": "complete",
-      "userStories": [
-        {"id": "US-001", "title": "Project scaffold with Next.js 16 and dependencies", "passes": true},
-        {"id": "US-002", "title": "Initialize Convex backend", "passes": true},
-        {"id": "US-003", "title": "Core tenant schema - organizations and users tables", "passes": true},
-        {"id": "US-004", "title": "Agent schema - agents table with widget config", "passes": true},
-        {"id": "US-005", "title": "Knowledge schema - sources and chunks tables with vector index", "passes": true},
-        {"id": "US-006", "title": "Conversation schema - conversations and messages tables", "passes": true},
-        {"id": "US-007", "title": "Supporting schema - leads, webhooks, auditLogs, usageEvents, jobs", "passes": true},
-        {"id": "US-008", "title": "Shared types - lib/types.ts with API response shapes", "passes": true},
-        {"id": "US-009", "title": "Shared utils - lib/utils.ts with helpers", "passes": true},
-        {"id": "US-010", "title": "Environment setup - .env.example with documentation", "passes": true}
-      ]
+  "branchName": "ralph/faithbase",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project scaffold with Next.js 16 and dependencies",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "1a": {
-      "name": "Auth + Dashboard",
-      "status": "not_started",
-      "userStories": [
-        {
-          "id": "US-101",
-          "title": "WorkOS AuthKit integration (login, signup, logout)",
-          "description": "As a user, I need to authenticate using WorkOS AuthKit so I can access my dashboard securely.",
-          "acceptanceCriteria": [
-            "WorkOS AuthKit SDK installed and configured",
-            "Login page redirects to WorkOS hosted auth",
-            "Callback route handles OAuth redirect and sets session",
-            "Logout clears session and redirects to home",
-            "Session middleware protects /dashboard routes",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 1,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-102",
-          "title": "Organization management (create, switch orgs)",
-          "description": "As a user, I need to create organizations and switch between them so I can manage multiple chatbots.",
-          "acceptanceCriteria": [
-            "Create organization mutation with name and slug",
-            "Organization switcher in dashboard header",
-            "Current organization stored in session",
-            "New users get default organization on first login",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 2,
-          "passes": false,
-          "dependsOn": ["US-101"]
-        },
-        {
-          "id": "US-103",
-          "title": "User → Organization membership sync",
-          "description": "As a system, I need to sync user data to the Convex users table so membership is tracked.",
-          "acceptanceCriteria": [
-            "User record created/updated on login",
-            "workosUserId, email, name synced from WorkOS",
-            "organizationId linked to current org",
-            "lastLoginAt updated on each login",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 3,
-          "passes": false,
-          "dependsOn": ["US-101", "US-102"]
-        },
-        {
-          "id": "US-104",
-          "title": "Dashboard layout (sidebar, navigation)",
-          "description": "As a user, I need a dashboard with sidebar navigation so I can access different sections.",
-          "acceptanceCriteria": [
-            "Dashboard layout with responsive sidebar",
-            "Navigation items: Agents, Chat Logs, Analytics, Sources, Settings",
-            "Active nav item highlighted",
-            "Organization name in header",
-            "Mobile-responsive",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 4,
-          "passes": false,
-          "dependsOn": ["US-102"]
-        },
-        {
-          "id": "US-105",
-          "title": "Agent CRUD UI (create, edit, delete agents)",
-          "description": "As a user, I need to create, edit, and delete agents so I can manage my chatbots.",
-          "acceptanceCriteria": [
-            "Agents list page showing all agents for current org",
-            "Create agent form: name, model, system prompt",
-            "Edit agent page with all configurable fields",
-            "Delete agent with confirmation (soft delete)",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 5,
-          "passes": false,
-          "dependsOn": ["US-104"]
-        },
-        {
-          "id": "US-106",
-          "title": "Playground UI (test chat with your agent)",
-          "description": "As a user, I need a playground to test my chatbot before deploying.",
-          "acceptanceCriteria": [
-            "Playground tab on agent detail page",
-            "Chat interface with message input",
-            "Streaming response display",
-            "Shows retrieved sources for debugging",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 6,
-          "passes": false,
-          "dependsOn": ["US-105"]
-        },
-        {
-          "id": "US-107",
-          "title": "Settings pages (agent config, allowed domains)",
-          "description": "As a user, I need settings pages to configure my agent and organization.",
-          "acceptanceCriteria": [
-            "Agent settings: widget config, allowed domains",
-            "Organization settings: name, defaults",
-            "Changes saved with success notification",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 7,
-          "passes": false,
-          "dependsOn": ["US-104"]
-        }
-      ]
+    {
+      "id": "US-002",
+      "title": "Initialize Convex backend",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 2,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "1b": {
-      "name": "Chat/RAG Backend",
-      "status": "complete",
-      "userStories": [
-        {"id": "US-111", "title": "Vector search query (k-NN on embeddings)", "passes": true},
-        {"id": "US-112", "title": "RAG prompt construction (system prompt + retrieved context)", "passes": true},
-        {"id": "US-113", "title": "Streaming HTTP action with persistent-text-streaming", "passes": true},
-        {"id": "US-114", "title": "OpenRouter integration (multi-model support)", "passes": true},
-        {"id": "US-115", "title": "Source citations in responses", "passes": true},
-        {"id": "US-116", "title": "LLM-as-judge safety evaluation", "passes": true},
-        {"id": "US-117", "title": "Token usage tracking (usageEvents ledger)", "passes": true},
-        {"id": "US-118", "title": "Braintrust logging for all LLM calls", "passes": true}
-      ]
+    {
+      "id": "US-003",
+      "title": "Core tenant schema - organizations and users tables",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "1c": {
-      "name": "Ingestion Backend",
-      "status": "complete",
-      "userStories": [
-        {"id": "US-121", "title": "File upload to Convex storage (PDF, DOCX, TXT)", "passes": true},
-        {"id": "US-122", "title": "Vercel Workflow: parse file → chunk → embed → store", "passes": true},
-        {"id": "US-123", "title": "Website scraping via Firecrawl API", "passes": true},
-        {"id": "US-124", "title": "Text snippet and Q&A manual entry mutations", "passes": true},
-        {"id": "US-125", "title": "Embedding generation via OpenRouter", "passes": true},
-        {"id": "US-126", "title": "Jobs table tracking (status, progress, retries)", "passes": true},
-        {"id": "US-127", "title": "Retrain agent mutation (re-embed changed sources)", "passes": true},
-        {"id": "US-128", "title": "Source soft delete", "passes": true}
-      ]
+    {
+      "id": "US-004",
+      "title": "Agent schema - agents table with widget config",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "1d": {
-      "name": "Widget UI",
-      "status": "not_started",
-      "userStories": [
-        {
-          "id": "US-131",
-          "title": "Embeddable widget JavaScript bundle (builds to single file)",
-          "description": "As a developer, I need an embeddable widget script so customers can add the chatbot to their websites.",
-          "acceptanceCriteria": [
-            "Widget builds to single JavaScript file",
-            "Script tag loads widget with data-agent-id attribute",
-            "Bundle size optimized",
-            "No conflicts with host page",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 1,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-132",
-          "title": "Widget iframe with postMessage communication",
-          "description": "As a system, I need the widget to use an iframe for isolation and security.",
-          "acceptanceCriteria": [
-            "Widget injects iframe into host page",
-            "postMessage communication between widget and iframe",
-            "Chat UI rendered inside iframe",
-            "Streaming messages displayed",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 2,
-          "passes": false,
-          "dependsOn": ["US-131"]
-        },
-        {
-          "id": "US-133",
-          "title": "Customization: colors, logo, welcome message, position",
-          "description": "As a user, I need to customize the widget appearance to match my brand.",
-          "acceptanceCriteria": [
-            "Primary color configurable",
-            "Avatar/logo URL configurable",
-            "Welcome message displayed on open",
-            "Position configurable (bottom-right, bottom-left)",
-            "Config loaded from agent widgetConfig",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 3,
-          "passes": false,
-          "dependsOn": ["US-132"]
-        },
-        {
-          "id": "US-134",
-          "title": "Standalone help page at /chat/[slug]",
-          "description": "As a visitor, I need a standalone help page to chat without embedding the widget.",
-          "acceptanceCriteria": [
-            "Route at /chat/[slug]",
-            "Full-page chat interface",
-            "Agent branding displayed",
-            "Same chat functionality as widget",
-            "Mobile-responsive",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 4,
-          "passes": false,
-          "dependsOn": ["US-132"]
-        },
-        {
-          "id": "US-135",
-          "title": "CORS validation (allowedDomains check)",
-          "description": "As a system, I need to validate request origins so only authorized domains can use the widget.",
-          "acceptanceCriteria": [
-            "Origin header validated on chat requests",
-            "Checked against organization's allowedDomains",
-            "Wildcard subdomain support",
-            "Unauthorized origins return 403",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 5,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-136",
-          "title": "Embed code generator (dashboard UI)",
-          "description": "As a user, I need to generate embed code to add the chatbot to my website.",
-          "acceptanceCriteria": [
-            "Embed tab on agent detail page",
-            "Display script tag with agent ID",
-            "Copy to clipboard button",
-            "Link to standalone help page URL",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 6,
-          "passes": false,
-          "dependsOn": ["US-131"]
-        }
-      ]
+    {
+      "id": "US-005",
+      "title": "Knowledge schema - sources and chunks tables with vector index",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 5,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "2": {
-      "name": "Analytics & Logs",
-      "status": "not_started",
-      "userStories": [
-        {
-          "id": "US-201",
-          "title": "Chat logs viewer (list conversations)",
-          "description": "As a user, I need to view all conversations so I can monitor chatbot usage.",
-          "acceptanceCriteria": [
-            "Chat logs page in dashboard",
-            "Lists conversations with date, message count, visitor info",
-            "Paginated results",
-            "Filter by agent and date range",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 1,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-202",
-          "title": "Conversation detail view (full thread)",
-          "description": "As a user, I need to view full conversation threads to see what visitors are asking.",
-          "acceptanceCriteria": [
-            "Click conversation opens detail view",
-            "Full message thread displayed",
-            "User and assistant messages distinguished",
-            "Citations shown for each response",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 2,
-          "passes": false,
-          "dependsOn": ["US-201"]
-        },
-        {
-          "id": "US-203",
-          "title": "Basic analytics (total chats, over time)",
-          "description": "As a user, I need basic analytics to understand chatbot performance.",
-          "acceptanceCriteria": [
-            "Analytics page in dashboard",
-            "Total conversations and messages count",
-            "Conversations over time chart",
-            "Date range selector",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 3,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-204",
-          "title": "Lead capture form (configurable fields)",
-          "description": "As a user, I need to capture leads from conversations for follow-up.",
-          "acceptanceCriteria": [
-            "Lead capture form configurable per agent",
-            "Fields: name, email, phone, custom fields",
-            "Lead record created in leads table",
-            "Lead linked to conversation",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 4,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-205",
-          "title": "Export conversations (CSV, JSON)",
-          "description": "As a user, I need to export conversation data for external analysis.",
-          "acceptanceCriteria": [
-            "Export button on chat logs page",
-            "Export formats: CSV and JSON",
-            "Filter by date range",
-            "Export includes messages and metadata",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 5,
-          "passes": false,
-          "dependsOn": ["US-201"]
-        }
-      ]
+    {
+      "id": "US-006",
+      "title": "Conversation schema - conversations and messages tables",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 6,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
     },
-    "3": {
-      "name": "Billing & Limits",
-      "status": "not_started",
-      "userStories": [
-        {
-          "id": "US-301",
-          "title": "Stripe integration (checkout, webhooks, portal)",
-          "description": "As a system, I need Stripe integration to process payments and manage subscriptions.",
-          "acceptanceCriteria": [
-            "Stripe SDK installed and configured",
-            "Checkout session creation for subscriptions",
-            "Webhook handler for subscription events",
-            "Customer portal access for self-service",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 1,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-302",
-          "title": "Plan tiers (Free, Hobby $40, Standard $150, Pro $500)",
-          "description": "As a user, I need to choose from plan tiers with different features and limits.",
-          "acceptanceCriteria": [
-            "Pricing page displays all plan tiers",
-            "Features and limits listed for each tier",
-            "Subscribe button for each paid tier",
-            "Organization plan stored in database",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 2,
-          "passes": false,
-          "dependsOn": ["US-301"]
-        },
-        {
-          "id": "US-303",
-          "title": "Usage tracking (messages, storage, agents)",
-          "description": "As a system, I need to track usage to enforce plan limits.",
-          "acceptanceCriteria": [
-            "messageCreditsUsed incremented on each message",
-            "storageUsedKb updated on file upload",
-            "Agent count tracked per organization",
-            "Usage displayed in dashboard",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 3,
-          "passes": false,
-          "dependsOn": []
-        },
-        {
-          "id": "US-304",
-          "title": "Upgrade prompts and paywalls",
-          "description": "As a user, I need clear prompts when I hit limits so I know how to upgrade.",
-          "acceptanceCriteria": [
-            "Warning banner when approaching limit",
-            "Block message when limit exceeded",
-            "Upgrade CTA with link to pricing",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 4,
-          "passes": false,
-          "dependsOn": ["US-303"]
-        },
-        {
-          "id": "US-305",
-          "title": "Credit reset on billing cycle",
-          "description": "As a system, I need to reset message credits monthly for paying customers.",
-          "acceptanceCriteria": [
-            "billingCycleStart tracked per organization",
-            "messageCreditsUsed reset on invoice.paid webhook",
-            "pnpm run typecheck passes",
-            "pnpm run lint passes"
-          ],
-          "priority": 5,
-          "passes": false,
-          "dependsOn": ["US-301", "US-303"]
-        }
-      ]
+    {
+      "id": "US-007",
+      "title": "Supporting schema - leads, webhooks, auditLogs, usageEvents, jobs",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 7,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-008",
+      "title": "Shared types - lib/types.ts with API response shapes",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 8,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-009",
+      "title": "Shared utils - lib/utils.ts with helpers",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 9,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-010",
+      "title": "Environment setup - .env.example with documentation",
+      "description": "Foundation setup",
+      "acceptanceCriteria": [],
+      "priority": 10,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-101",
+      "title": "WorkOS AuthKit integration (login, signup, logout)",
+      "description": "As a user, I need to authenticate using WorkOS AuthKit so I can access my dashboard securely.",
+      "acceptanceCriteria": [
+        "WorkOS AuthKit SDK installed and configured",
+        "Login page redirects to WorkOS hosted auth",
+        "Callback route handles OAuth redirect and sets session",
+        "Logout clears session and redirects to home",
+        "Session middleware protects /dashboard routes",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-102",
+      "title": "Organization management (create, switch orgs)",
+      "description": "As a user, I need to create organizations and switch between them so I can manage multiple chatbots.",
+      "acceptanceCriteria": [
+        "Create organization mutation with name and slug",
+        "Organization switcher in dashboard header",
+        "Current organization stored in session",
+        "New users get default organization on first login",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-101"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-103",
+      "title": "User → Organization membership sync",
+      "description": "As a system, I need to sync user data to the Convex users table so membership is tracked.",
+      "acceptanceCriteria": [
+        "User record created/updated on login",
+        "workosUserId, email, name synced from WorkOS",
+        "organizationId linked to current org",
+        "lastLoginAt updated on each login",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-101",
+        "US-102"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-104",
+      "title": "Dashboard layout (sidebar, navigation)",
+      "description": "As a user, I need a dashboard with sidebar navigation so I can access different sections.",
+      "acceptanceCriteria": [
+        "Dashboard layout with responsive sidebar",
+        "Navigation items: Agents, Chat Logs, Analytics, Sources, Settings",
+        "Active nav item highlighted",
+        "Organization name in header",
+        "Mobile-responsive",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-102"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-105",
+      "title": "Agent CRUD UI (create, edit, delete agents)",
+      "description": "As a user, I need to create, edit, and delete agents so I can manage my chatbots.",
+      "acceptanceCriteria": [
+        "Agents list page showing all agents for current org",
+        "Create agent form: name, model, system prompt",
+        "Edit agent page with all configurable fields",
+        "Delete agent with confirmation (soft delete)",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-104"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-106",
+      "title": "Playground UI (test chat with your agent)",
+      "description": "As a user, I need a playground to test my chatbot before deploying.",
+      "acceptanceCriteria": [
+        "Playground tab on agent detail page",
+        "Chat interface with message input",
+        "Streaming response display",
+        "Shows retrieved sources for debugging",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-105"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-107",
+      "title": "Settings pages (agent config, allowed domains)",
+      "description": "As a user, I need settings pages to configure my agent and organization.",
+      "acceptanceCriteria": [
+        "Agent settings: widget config, allowed domains",
+        "Organization settings: name, defaults",
+        "Changes saved with success notification",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-104"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-111",
+      "title": "Vector search query (k-NN on embeddings)",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 18,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-112",
+      "title": "RAG prompt construction (system prompt + retrieved context)",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 19,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-113",
+      "title": "Streaming HTTP action with persistent-text-streaming",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 20,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-114",
+      "title": "OpenRouter integration (multi-model support)",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 21,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-115",
+      "title": "Source citations in responses",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 22,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-116",
+      "title": "LLM-as-judge safety evaluation",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 23,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-117",
+      "title": "Token usage tracking (usageEvents ledger)",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 24,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-118",
+      "title": "Braintrust logging for all LLM calls",
+      "description": "Chat/RAG backend",
+      "acceptanceCriteria": [],
+      "priority": 25,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-121",
+      "title": "File upload to Convex storage (PDF, DOCX, TXT)",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 26,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-122",
+      "title": "Vercel Workflow: parse file → chunk → embed → store",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 27,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-123",
+      "title": "Website scraping via Firecrawl API",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 28,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-124",
+      "title": "Text snippet and Q&A manual entry mutations",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 29,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-125",
+      "title": "Embedding generation via OpenRouter",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 30,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-126",
+      "title": "Jobs table tracking (status, progress, retries)",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 31,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-127",
+      "title": "Retrain agent mutation (re-embed changed sources)",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 32,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-128",
+      "title": "Source soft delete",
+      "description": "Ingestion backend",
+      "acceptanceCriteria": [],
+      "priority": 33,
+      "passes": true,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-131",
+      "title": "Embeddable widget JavaScript bundle (builds to single file)",
+      "description": "As a developer, I need an embeddable widget script so customers can add the chatbot to their websites.",
+      "acceptanceCriteria": [
+        "Widget builds to single JavaScript file",
+        "Script tag loads widget with data-agent-id attribute",
+        "Bundle size optimized",
+        "No conflicts with host page",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-132",
+      "title": "Widget iframe with postMessage communication",
+      "description": "As a system, I need the widget to use an iframe for isolation and security.",
+      "acceptanceCriteria": [
+        "Widget injects iframe into host page",
+        "postMessage communication between widget and iframe",
+        "Chat UI rendered inside iframe",
+        "Streaming messages displayed",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-131"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-133",
+      "title": "Customization: colors, logo, welcome message, position",
+      "description": "As a user, I need to customize the widget appearance to match my brand.",
+      "acceptanceCriteria": [
+        "Primary color configurable",
+        "Avatar/logo URL configurable",
+        "Welcome message displayed on open",
+        "Position configurable (bottom-right, bottom-left)",
+        "Config loaded from agent widgetConfig",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-132"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-134",
+      "title": "Standalone help page at /chat/[slug]",
+      "description": "As a visitor, I need a standalone help page to chat without embedding the widget.",
+      "acceptanceCriteria": [
+        "Route at /chat/[slug]",
+        "Full-page chat interface",
+        "Agent branding displayed",
+        "Same chat functionality as widget",
+        "Mobile-responsive",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-132"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-135",
+      "title": "CORS validation (allowedDomains check)",
+      "description": "As a system, I need to validate request origins so only authorized domains can use the widget.",
+      "acceptanceCriteria": [
+        "Origin header validated on chat requests",
+        "Checked against organization's allowedDomains",
+        "Wildcard subdomain support",
+        "Unauthorized origins return 403",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 38,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-136",
+      "title": "Embed code generator (dashboard UI)",
+      "description": "As a user, I need to generate embed code to add the chatbot to my website.",
+      "acceptanceCriteria": [
+        "Embed tab on agent detail page",
+        "Display script tag with agent ID",
+        "Copy to clipboard button",
+        "Link to standalone help page URL",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 39,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-131"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-201",
+      "title": "Chat logs viewer (list conversations)",
+      "description": "As a user, I need to view all conversations so I can monitor chatbot usage.",
+      "acceptanceCriteria": [
+        "Chat logs page in dashboard",
+        "Lists conversations with date, message count, visitor info",
+        "Paginated results",
+        "Filter by agent and date range",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 40,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-202",
+      "title": "Conversation detail view (full thread)",
+      "description": "As a user, I need to view full conversation threads to see what visitors are asking.",
+      "acceptanceCriteria": [
+        "Click conversation opens detail view",
+        "Full message thread displayed",
+        "User and assistant messages distinguished",
+        "Citations shown for each response",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 41,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-201"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-203",
+      "title": "Basic analytics (total chats, over time)",
+      "description": "As a user, I need basic analytics to understand chatbot performance.",
+      "acceptanceCriteria": [
+        "Analytics page in dashboard",
+        "Total conversations and messages count",
+        "Conversations over time chart",
+        "Date range selector",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 42,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-204",
+      "title": "Lead capture form (configurable fields)",
+      "description": "As a user, I need to capture leads from conversations for follow-up.",
+      "acceptanceCriteria": [
+        "Lead capture form configurable per agent",
+        "Fields: name, email, phone, custom fields",
+        "Lead record created in leads table",
+        "Lead linked to conversation",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 43,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-205",
+      "title": "Export conversations (CSV, JSON)",
+      "description": "As a user, I need to export conversation data for external analysis.",
+      "acceptanceCriteria": [
+        "Export button on chat logs page",
+        "Export formats: CSV and JSON",
+        "Filter by date range",
+        "Export includes messages and metadata",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 44,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-201"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-301",
+      "title": "Stripe integration (checkout, webhooks, portal)",
+      "description": "As a system, I need Stripe integration to process payments and manage subscriptions.",
+      "acceptanceCriteria": [
+        "Stripe SDK installed and configured",
+        "Checkout session creation for subscriptions",
+        "Webhook handler for subscription events",
+        "Customer portal access for self-service",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 45,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-302",
+      "title": "Plan tiers (Free, Hobby $40, Standard $150, Pro $500)",
+      "description": "As a user, I need to choose from plan tiers with different features and limits.",
+      "acceptanceCriteria": [
+        "Pricing page displays all plan tiers",
+        "Features and limits listed for each tier",
+        "Subscribe button for each paid tier",
+        "Organization plan stored in database",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 46,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-301"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-303",
+      "title": "Usage tracking (messages, storage, agents)",
+      "description": "As a system, I need to track usage to enforce plan limits.",
+      "acceptanceCriteria": [
+        "messageCreditsUsed incremented on each message",
+        "storageUsedKb updated on file upload",
+        "Agent count tracked per organization",
+        "Usage displayed in dashboard",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 47,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-304",
+      "title": "Upgrade prompts and paywalls",
+      "description": "As a user, I need clear prompts when I hit limits so I know how to upgrade.",
+      "acceptanceCriteria": [
+        "Warning banner when approaching limit",
+        "Block message when limit exceeded",
+        "Upgrade CTA with link to pricing",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 48,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-303"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-305",
+      "title": "Credit reset on billing cycle",
+      "description": "As a system, I need to reset message credits monthly for paying customers.",
+      "acceptanceCriteria": [
+        "billingCycleStart tracked per organization",
+        "messageCreditsUsed reset on invoice.paid webhook",
+        "pnpm run typecheck passes",
+        "pnpm run lint passes"
+      ],
+      "priority": 49,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-301",
+        "US-303"
+      ],
+      "completionNotes": "Completed by agent"
     }
-  },
+  ],
   "metadata": {
-    "updatedAt": "2026-01-19T23:15:00.000Z"
+    "updatedAt": "2026-01-20T04:39:29.335Z"
   }
 }

@@ -9,7 +9,7 @@ import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings } from "lucide-react";
+import { Settings, Code, Play } from "lucide-react";
 
 interface AgentFormProps {
   organizationId: string;
@@ -182,7 +182,7 @@ export function AgentForm({ organizationId, agent }: AgentFormProps) {
             </div>
           )}
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-wrap gap-3 pt-4">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving..."
@@ -191,12 +191,26 @@ export function AgentForm({ organizationId, agent }: AgentFormProps) {
                   : "Create Agent"}
             </Button>
             {isEditing && (
-              <Link href={`/dashboard/agents/${agent._id}/settings`}>
-                <Button type="button" variant="outline">
-                  <Settings className="h-4 w-4" />
-                  Widget Settings
-                </Button>
-              </Link>
+              <>
+                <Link href={`/dashboard/agents/${agent._id}/playground`}>
+                  <Button type="button" variant="outline">
+                    <Play className="mr-1.5 h-4 w-4" />
+                    Test
+                  </Button>
+                </Link>
+                <Link href={`/dashboard/agents/${agent._id}/embed`}>
+                  <Button type="button" variant="outline">
+                    <Code className="mr-1.5 h-4 w-4" />
+                    Embed
+                  </Button>
+                </Link>
+                <Link href={`/dashboard/agents/${agent._id}/settings`}>
+                  <Button type="button" variant="outline">
+                    <Settings className="mr-1.5 h-4 w-4" />
+                    Settings
+                  </Button>
+                </Link>
+              </>
             )}
             <Button
               type="button"

@@ -10,7 +10,6 @@ import {
   createDefaultClient,
   streamChatCompletion,
   type ChatMessage,
-  type ChatCompletionUsage,
   OpenRouterAPIError,
 } from "./openrouter";
 import { FALLBACK_RESPONSE } from "./judge";
@@ -41,7 +40,7 @@ interface ChatStreamRequest {
  * 2. Retrieves relevant chunks via vector search (if embedding provided)
  * 3. Builds the RAG prompt with context
  * 4. Streams tokens to the client via persistent-text-streaming
- * 5. Updates the message in the database when complete
+ * 5. Updates the message in the database when complete (inside the generator)
  */
 export const streamChat = httpAction(async (ctx, request) => {
   // Handle CORS preflight
@@ -91,7 +90,7 @@ export const streamChat = httpAction(async (ctx, request) => {
   // Get conversation history for context
   const history = await ctx.runQuery(api.chat.getConversationHistory, {
     conversationId: conversationId as Id<"conversations">,
-    limit: 10, // Last 10 messages for context
+    limit: 10,
   });
 
   // Remove the last message (current user message) from history
@@ -123,12 +122,6 @@ export const streamChat = httpAction(async (ctx, request) => {
     maxHistoryTokens: 2000,
   });
 
-  // Track timing and tokens
-  const startTime = Date.now();
-  let completionContent = "";
-  let usage: ChatCompletionUsage | undefined;
-  let actualModel = conversation.agentConfigSnapshot.model;
-
   // Get model and temperature from agent config
   const model = conversation.agentConfigSnapshot.model;
   const temperature = conversation.agentConfigSnapshot.temperature;
@@ -141,14 +134,36 @@ export const streamChat = httpAction(async (ctx, request) => {
     })
   );
 
-  // Generator function that calls the LLM via OpenRouter client
+  // Pre-compute values needed inside the generator
+  const dbCitations = extractCitations(ragPrompt.chunksUsed).map((c) => ({
+    chunkId: c.chunkId as Id<"chunks">,
+    sourceId: c.sourceId as Id<"sources">,
+    sourceName: c.sourceName,
+    sourceType: c.sourceType,
+    contentSnippet: c.contentSnippet,
+    url: c.url,
+    pageNumber: c.pageNumber,
+  }));
+
+  const contextForJudge = ragPrompt.chunksUsed
+    .map((c) => c.content)
+    .join("\n\n---\n\n");
+
+  const chunksUsedIds = ragPrompt.chunksUsed.map((c) => c.chunkId as Id<"chunks">);
+
+  // Generator function that calls the LLM and handles post-processing
   const generateChat = async (
     _ctx: typeof ctx,
     _request: Request,
     _streamId: StreamId,
     chunkAppender: (chunk: string) => Promise<void>
   ) => {
-    // Create OpenRouter client (throws if API key not configured)
+    const startTime = Date.now();
+    let completionContent = "";
+    let actualModel = model;
+    let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
+
+    // Create OpenRouter client
     const client = createDefaultClient();
 
     try {
@@ -172,90 +187,70 @@ export const streamChat = httpAction(async (ctx, request) => {
       actualModel = result.model;
     } catch (error) {
       if (error instanceof OpenRouterAPIError) {
-        throw new Error(
-          `OpenRouter API error (${error.statusCode}): ${error.message}`
-        );
+        console.error("[chat-stream] OpenRouter error:", error.message);
+        throw error;
       }
       throw error;
     }
+
+    const latencyMs = Date.now() - startTime;
+
+    // Log chat completion to Braintrust
+    logChatCompletion({
+      messages: openRouterMessages,
+      output: completionContent,
+      model: actualModel,
+      latencyMs,
+      tokensPrompt: usage?.prompt_tokens,
+      tokensCompletion: usage?.completion_tokens,
+      organizationId: conversation.organizationId,
+      agentId: conversation.agentId,
+      conversationId,
+      messageId,
+      context: contextForJudge,
+    });
+
+    // Run LLM-as-judge safety evaluation
+    let finalContent = completionContent;
+
+    const judgeResult = await ctx.runAction(internal.judge.evaluateResponse, {
+      response: completionContent,
+      systemPrompt: ragPrompt.systemPrompt,
+      context: contextForJudge,
+      userMessage,
+      organizationId: conversation.organizationId,
+      agentId: conversation.agentId,
+      conversationId,
+      messageId,
+    });
+
+    // If judge fails the response, replace with fallback
+    if (!judgeResult.passed) {
+      judgeResult.originalContent = completionContent;
+      finalContent = FALLBACK_RESPONSE;
+    }
+
+    // Update message with final content, usage stats, and judge evaluation
+    await ctx.runMutation(internal.chat.updateMessageAfterStream, {
+      messageId: messageId as Id<"messages">,
+      content: finalContent,
+      model: actualModel,
+      latencyMs,
+      tokensPrompt: usage?.prompt_tokens,
+      tokensCompletion: usage?.completion_tokens,
+      chunksUsed: chunksUsedIds,
+      citations: dbCitations,
+      judgeEvaluation: judgeResult,
+    });
   };
 
-  // Stream the response
+  // Stream the response - generateChat runs inside and handles everything
   const response = await persistentTextStreaming.stream(
     ctx,
     request,
     streamId as StreamId,
     generateChat
   );
-
-  // After streaming completes, update the message in the database
-  const latencyMs = Date.now() - startTime;
-  const citations = extractCitations(ragPrompt.chunksUsed);
-
-  // Convert citations to the format expected by the database
-  const dbCitations = citations.map((c) => ({
-    chunkId: c.chunkId as Id<"chunks">,
-    sourceId: c.sourceId as Id<"sources">,
-    sourceName: c.sourceName,
-    sourceType: c.sourceType,
-    contentSnippet: c.contentSnippet,
-    url: c.url,
-    pageNumber: c.pageNumber,
-  }));
-
-  // Build context string for judge evaluation (from RAG chunks)
-  const contextForJudge = ragPrompt.chunksUsed
-    .map((c) => c.content)
-    .join("\n\n---\n\n");
-
-  // Log chat completion to Braintrust
-  logChatCompletion({
-    messages: openRouterMessages,
-    output: completionContent,
-    model: actualModel,
-    latencyMs,
-    tokensPrompt: usage?.prompt_tokens,
-    tokensCompletion: usage?.completion_tokens,
-    organizationId: conversation.organizationId,
-    agentId: conversation.agentId,
-    conversationId,
-    messageId,
-    context: contextForJudge,
-  });
-
-  // Run LLM-as-judge safety evaluation
-  let finalContent = completionContent;
-
-  const judgeResult = await ctx.runAction(internal.judge.evaluateResponse, {
-    response: completionContent,
-    systemPrompt: ragPrompt.systemPrompt,
-    context: contextForJudge,
-    userMessage,
-    // Pass context for Braintrust logging
-    organizationId: conversation.organizationId,
-    agentId: conversation.agentId,
-    conversationId,
-    messageId,
-  });
-
-  // If judge fails the response, replace with fallback
-  if (!judgeResult.passed) {
-    judgeResult.originalContent = completionContent;
-    finalContent = FALLBACK_RESPONSE;
-  }
-
-  // Update message with final content, usage stats, and judge evaluation
-  await ctx.runMutation(internal.chat.updateMessageAfterStream, {
-    messageId: messageId as Id<"messages">,
-    content: finalContent,
-    model: actualModel,
-    latencyMs,
-    tokensPrompt: usage?.prompt_tokens,
-    tokensCompletion: usage?.completion_tokens,
-    chunksUsed: ragPrompt.chunksUsed.map((c) => c.chunkId as Id<"chunks">),
-    citations: dbCitations,
-    judgeEvaluation: judgeResult,
-  });
 
   // Set CORS headers on response
   response.headers.set("Access-Control-Allow-Origin", "*");

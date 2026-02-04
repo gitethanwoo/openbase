@@ -90,9 +90,11 @@ export const createAgent = mutation({
     }
 
     // Check agent limit (agentLimit of -1 means unlimited)
-    if (org.agentLimit !== -1 && org.agentCount >= org.agentLimit) {
+    const agentLimit = org.agentLimit ?? 1;
+    const agentCount = org.agentCount ?? 0;
+    if (agentLimit !== -1 && agentCount >= agentLimit) {
       throw new Error(
-        `Agent limit reached. Your plan allows ${org.agentLimit} agent${org.agentLimit === 1 ? "" : "s"}. Please upgrade to create more agents.`
+        `Agent limit reached. Your plan allows ${agentLimit} agent${agentLimit === 1 ? "" : "s"}. Please upgrade to create more agents.`
       );
     }
 
@@ -145,7 +147,7 @@ export const createAgent = mutation({
 
     // Increment agent count for the organization
     await ctx.db.patch(args.organizationId, {
-      agentCount: org.agentCount + 1,
+      agentCount: (org.agentCount ?? 0) + 1,
     });
 
     return agentId;
@@ -264,9 +266,9 @@ export const deleteAgent = mutation({
 
     // Decrement agent count for the organization
     const org = await ctx.db.get(agent.organizationId);
-    if (org && !org.deletedAt && org.agentCount > 0) {
+    if (org && !org.deletedAt && (org.agentCount ?? 0) > 0) {
       await ctx.db.patch(agent.organizationId, {
-        agentCount: org.agentCount - 1,
+        agentCount: (org.agentCount ?? 0) - 1,
       });
     }
 

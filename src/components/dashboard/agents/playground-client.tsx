@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
-import { Bot, Send, ArrowLeft, Loader2 } from "lucide-react";
+import { Bot, Send, ArrowLeft, Loader2, Code } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -74,24 +74,8 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
     conversationId ? { conversationId } : "skip"
   );
 
-  // Update messages from database when streaming completes
-  const updateMessagesFromDb = useCallback(() => {
-    if (dbMessages && !streamingMessageId) {
-      setMessages(
-        dbMessages.map((m) => ({
-          _id: m._id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          streamId: m.streamId,
-          citations: m.citations,
-          judgeEvaluation: m.judgeEvaluation,
-        }))
-      );
-    }
-  }, [dbMessages, streamingMessageId]);
-
-  // Update streaming message content
-  const updateStreamingMessage = useCallback(() => {
+  // Effect to update streaming message content as it streams
+  useEffect(() => {
     if (streamBody && streamingMessageId) {
       const streamText = streamBody.text;
       setMessages((prev) =>
@@ -104,27 +88,22 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
     }
   }, [streamBody, streamingMessageId]);
 
-  // Effect to update messages when database changes (after stream completes)
-  if (dbMessages && !streamingMessageId && messages.length > 0) {
-    const lastDbMessage = dbMessages[dbMessages.length - 1];
-    const lastLocalMessage = messages[messages.length - 1];
-    if (
-      lastDbMessage &&
-      lastLocalMessage &&
-      lastDbMessage.content !== lastLocalMessage.content &&
-      lastDbMessage.content !== ""
-    ) {
-      updateMessagesFromDb();
+  // Effect to sync messages from database after streaming completes
+  useEffect(() => {
+    if (dbMessages && !streamingMessageId && conversationId) {
+      setMessages(
+        dbMessages.map((m) => ({
+          _id: m._id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          streamId: m.streamId,
+          citations: m.citations,
+          judgeEvaluation: m.judgeEvaluation,
+          isStreaming: false,
+        }))
+      );
     }
-  }
-
-  // Effect to update streaming message
-  if (streamBody && streamingMessageId) {
-    const currentMsg = messages.find((m) => m._id === streamingMessageId);
-    if (currentMsg && currentMsg.content !== streamBody.text) {
-      updateStreamingMessage();
-    }
-  }
+  }, [dbMessages, streamingMessageId, conversationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +123,9 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
       role: "user",
       content: trimmedInput,
     };
+
+    // Track messages added for error cleanup
+    let addedAssistantMessageId: string | null = null;
 
     setMessages((prev) => [...prev, userMessage]);
 
@@ -171,6 +153,7 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
       }
 
       // Add placeholder for assistant message
+      addedAssistantMessageId = result.assistantMessageId;
       const assistantMessage: Message = {
         _id: result.assistantMessageId,
         role: "assistant",
@@ -183,10 +166,14 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
       setCurrentStreamId(result.streamId);
 
       // Trigger the streaming endpoint
-      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL!;
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+      if (!convexUrl) {
+        throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured");
+      }
       const httpUrl = convexUrl.replace(".cloud", ".site");
+      console.log("Calling stream endpoint:", httpUrl + "/chat-stream");
 
-      await fetch(`${httpUrl}/chat-stream`, {
+      const streamResponse = await fetch(`${httpUrl}/chat-stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -198,6 +185,12 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
           userMessage: trimmedInput,
         }),
       });
+
+      if (!streamResponse.ok) {
+        const errorText = await streamResponse.text();
+        console.error("Stream error:", streamResponse.status, errorText);
+        throw new Error(`Stream failed: ${streamResponse.status}`);
+      }
 
       // Stream completed, clear streaming state
       setStreamingMessageId(null);
@@ -214,8 +207,13 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
       }, 500);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Remove the placeholder message on error
-      setMessages((prev) => prev.filter((m) => m._id !== userMessageId));
+      // Remove the placeholder messages on error
+      setMessages((prev) => prev.filter((m) =>
+        m._id !== userMessageId && m._id !== addedAssistantMessageId
+      ));
+      // Clear streaming state
+      setStreamingMessageId(null);
+      setCurrentStreamId(null);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -256,6 +254,12 @@ export function PlaygroundClient({ agent, organizationId }: PlaygroundClientProp
           <Link href={`/dashboard/agents/${agent._id}/edit`}>
             <Button variant="outline" size="sm">
               Edit Agent
+            </Button>
+          </Link>
+          <Link href={`/dashboard/agents/${agent._id}/embed`}>
+            <Button variant="outline" size="sm">
+              <Code className="mr-1.5 h-3.5 w-3.5" />
+              Embed
             </Button>
           </Link>
           {messages.length > 0 && (

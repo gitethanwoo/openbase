@@ -87,9 +87,11 @@ export function BillingPage({ organization }: BillingPageProps) {
   const storagePercent = Math.round(
     (organization.storageUsedKb / organization.storageLimitKb) * 100
   );
-  const agentPercent = organization.agentLimit === -1
+  const agentLimit = organization.agentLimit ?? 1;
+  const agentCount = organization.agentCount ?? 0;
+  const agentPercent = agentLimit === -1
     ? 0
-    : Math.round((organization.agentCount / organization.agentLimit) * 100);
+    : Math.round((agentCount / agentLimit) * 100);
 
   return (
     <div className="space-y-8">
@@ -161,10 +163,10 @@ export function BillingPage({ organization }: BillingPageProps) {
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Agents</span>
                 <span className="font-medium">
-                  {organization.agentCount} /{" "}
-                  {organization.agentLimit === -1
+                  {agentCount} /{" "}
+                  {agentLimit === -1
                     ? "Unlimited"
-                    : organization.agentLimit}
+                    : agentLimit}
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -172,14 +174,14 @@ export function BillingPage({ organization }: BillingPageProps) {
                   className="h-full bg-primary transition-all"
                   style={{
                     width:
-                      organization.agentLimit === -1
+                      agentLimit === -1
                         ? "0%"
                         : `${Math.min(agentPercent, 100)}%`,
                   }}
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {organization.agentLimit === -1
+                {agentLimit === -1
                   ? "Unlimited agents"
                   : `${agentPercent}% used`}
               </p>

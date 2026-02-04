@@ -181,10 +181,10 @@ export const getUsageSummary = query({
       ),
 
       // Agents
-      agentCount: org.agentCount,
-      agentLimit: org.agentLimit,
-      agentPercent: org.agentLimit === -1 ? 0 : Math.round(
-        (org.agentCount / org.agentLimit) * 100
+      agentCount: org.agentCount ?? 0,
+      agentLimit: org.agentLimit ?? 1,
+      agentPercent: (org.agentLimit ?? 1) === -1 ? 0 : Math.round(
+        ((org.agentCount ?? 0) / (org.agentLimit ?? 1)) * 100
       ),
 
       // Activity metrics

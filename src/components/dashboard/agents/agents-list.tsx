@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { Bot, Plus, Pencil, Trash2, Play, Settings } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Play, Settings, Code } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -126,7 +126,13 @@ export function AgentsList({ agents, organizationId }: AgentsListProps) {
                     >
                       <Button variant="default" size="sm" className="w-full">
                         <Play className="h-4 w-4" />
-                        Playground
+                        Test
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/agents/${agent._id}/embed`}>
+                      <Button variant="outline" size="sm">
+                        <Code className="h-4 w-4" />
+                        Embed
                       </Button>
                     </Link>
                     <Link href={`/dashboard/agents/${agent._id}/edit`}>

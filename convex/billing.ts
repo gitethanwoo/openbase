@@ -42,8 +42,8 @@ export const getBillingStatus = query({
       messageCreditsLimit: org.messageCreditsLimit,
       storageUsedKb: org.storageUsedKb,
       storageLimitKb: org.storageLimitKb,
-      agentCount: org.agentCount,
-      agentLimit: org.agentLimit,
+      agentCount: org.agentCount ?? 0,
+      agentLimit: org.agentLimit ?? 1,
       billingCycleStart: org.billingCycleStart,
     };
   },

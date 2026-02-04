@@ -144,6 +144,42 @@ export const listSources = query({
 });
 
 /**
+ * List all sources for an organization (across all agents).
+ */
+export const listSourcesByOrganization = query({
+  args: {
+    organizationId: v.id("organizations"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 100;
+
+    const sources = await ctx.db
+      .query("sources")
+      .withIndex("by_organizationId_agentId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .order("desc")
+      .take(limit);
+
+    // Get agent names for each source
+    const agentIds = [...new Set(sources.map((s) => s.agentId))];
+    const agents = await Promise.all(
+      agentIds.map((id) => ctx.db.get(id))
+    );
+    const agentMap = new Map(
+      agents.filter(Boolean).map((a) => [a!._id, a!.name])
+    );
+
+    return sources.map((source) => ({
+      ...source,
+      agentName: agentMap.get(source.agentId) ?? "Unknown Agent",
+    }));
+  },
+});
+
+/**
  * Get a signed URL for downloading a file from storage.
  */
 export const getFileUrl = query({
