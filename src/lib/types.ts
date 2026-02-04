@@ -158,11 +158,23 @@ export type AgentStatus = "draft" | "active" | "paused" | "archived";
 
 export type SourceStatus = "pending" | "processing" | "ready" | "error";
 
-export type SourceType = "file" | "url" | "sitemap" | "faq" | "text";
+export type SourceType =
+  | "file"
+  | "website"
+  | "text"
+  | "qa"
+  | "notion"
+  | "gdrive";
 
 export type JobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
-export type JobType = "file_parse" | "url_scrape" | "sitemap_crawl" | "embedding_generate" | "agent_retrain";
+export type JobType =
+  | "file_processing"
+  | "web_scraping"
+  | "text_snippet"
+  | "qa_pair"
+  | "notion_import"
+  | "gdrive_import";
 
 export type MessageRole = "user" | "assistant" | "system";
 
@@ -319,6 +331,10 @@ export interface Source {
   fileId?: Id<"_storage">;
   mimeType?: string;
   url?: string;
+  providerResourceId?: string;
+  providerResourceUrl?: string;
+  providerLastModified?: number;
+  workosUserId?: string;
   crawledPages?: number;
   question?: string;
   answer?: string;
