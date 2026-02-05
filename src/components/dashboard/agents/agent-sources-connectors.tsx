@@ -20,6 +20,7 @@ import { Loader2, Cloud, NotebookText, RefreshCcw } from "lucide-react";
 interface AgentSourcesConnectorsProps {
   agentId: string;
   organizationId: string;
+  workosUserId: string;
 }
 
 type NotionPageSummary = {
@@ -62,6 +63,7 @@ function formatDate(timestamp?: string) {
 export function AgentSourcesConnectors({
   agentId,
   organizationId,
+  workosUserId,
 }: AgentSourcesConnectorsProps) {
   const router = useRouter();
   const { accessToken, loading: authLoading, error: authError } = useAccessToken();
@@ -87,6 +89,7 @@ export function AgentSourcesConnectors({
     try {
       const result = (await listNotionPages({
         limit: 50,
+        workosUserId,
       })) as NotionListResult;
       setNotionResult(result);
     } catch (err) {
@@ -102,6 +105,7 @@ export function AgentSourcesConnectors({
     try {
       const result = (await listGDriveFiles({
         limit: 50,
+        workosUserId,
       })) as GDriveListResult;
       setGDriveResult(result);
     } catch (err) {
@@ -125,6 +129,7 @@ export function AgentSourcesConnectors({
         title: page.title,
         pageUrl: page.url,
         lastEditedTime: Number.isNaN(lastEditedTime) ? undefined : lastEditedTime,
+        workosUserId,
       });
 
       const response = await fetch("/api/import-notion", {
@@ -162,6 +167,7 @@ export function AgentSourcesConnectors({
         sizeKb: file.sizeKb,
         webViewLink: file.webViewLink,
         modifiedTime: modifiedTime && !Number.isNaN(modifiedTime) ? modifiedTime : undefined,
+        workosUserId,
       });
 
       const response = await fetch("/api/import-gdrive", {

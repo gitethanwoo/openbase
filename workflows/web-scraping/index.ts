@@ -5,7 +5,7 @@
  * 1. Update status to "processing"
  * 2. Scrape single page or crawl multiple pages via Firecrawl
  * 3. Chunk text (500 tokens, 100 token overlap)
- * 4. Generate embeddings via OpenAI
+ * 4. Generate embeddings via AI SDK (OpenRouter)
  * 5. Store chunks with embeddings in Convex
  * 6. Update status to "ready" or "error"
  */

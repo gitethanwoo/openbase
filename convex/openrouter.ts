@@ -213,6 +213,26 @@ export const SUPPORTED_MODELS = {
     contextLength: 32000,
     supportsStreaming: true,
   },
+
+  // MoonshotAI
+  "moonshotai/kimi-k2.5": {
+    name: "Kimi K2.5",
+    provider: "MoonshotAI",
+    contextLength: 262144,
+    supportsStreaming: true,
+  },
+  "qwen/qwen3-30b-a3b": {
+    name: "Qwen 3 30B A3B",
+    provider: "Qwen",
+    contextLength: 40960,
+    supportsStreaming: true,
+  },
+  "qwen/qwen3-235b-a22b-2507": {
+    name: "Qwen 3 235B A22B 2507",
+    provider: "Qwen",
+    contextLength: 262144,
+    supportsStreaming: true,
+  },
 } as const;
 
 export type SupportedModel = keyof typeof SUPPORTED_MODELS;

@@ -21,6 +21,9 @@ const AVAILABLE_MODELS = [
   { value: "anthropic/claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
   { value: "anthropic/claude-3-opus", label: "Claude 3 Opus" },
   { value: "google/gemini-pro", label: "Gemini Pro" },
+  { value: "moonshotai/kimi-k2.5", label: "Kimi K2.5" },
+  { value: "qwen/qwen3-30b-a3b", label: "Qwen 3 30B A3B" },
+  { value: "qwen/qwen3-235b-a22b-2507", label: "Qwen 3 235B A22B 2507" },
 ];
 
 const VERTICALS = [

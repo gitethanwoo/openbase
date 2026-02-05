@@ -9,7 +9,7 @@
  * - Downloads from Convex storage
  * - Parses content (PDF, DOCX, TXT)
  * - Chunks text (500 tokens, 100 overlap)
- * - Generates embeddings via OpenAI
+ * - Generates embeddings via AI SDK (OpenRouter)
  * - Stores chunks in Convex
  * - Updates source and job status
  */

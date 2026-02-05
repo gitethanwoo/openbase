@@ -5,28 +5,26 @@
 
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
-import OpenAI from "openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { embedMany } from "ai";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { FatalError } from "workflow";
 
 // Lazy-initialized clients (to avoid build-time errors when env vars are missing)
-let _openai: OpenAI | null = null;
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
 let _convex: ConvexHttpClient | null = null;
 
-function getOpenAI(): OpenAI {
-  if (!_openai) {
+function getOpenRouter(): ReturnType<typeof createOpenRouter> {
+  if (!_openrouter) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       throw new Error("OPENROUTER_API_KEY environment variable is not set");
     }
-    _openai = new OpenAI({
-      apiKey,
-      baseURL: "https://openrouter.ai/api/v1",
-    });
+    _openrouter = createOpenRouter({ apiKey });
   }
-  return _openai;
+  return _openrouter;
 }
 
 function getConvex(): ConvexHttpClient {
@@ -278,7 +276,7 @@ export async function chunkText(text: string): Promise<TextChunk[]> {
 // Step: Generate Embeddings
 // ============================================================================
 
-const EMBEDDING_BATCH_SIZE = 100; // OpenAI supports up to 2048 inputs per request
+const EMBEDDING_BATCH_SIZE = 100; // OpenRouter supports large batches; keep conservative
 
 export async function generateEmbeddings(
   chunks: TextChunk[],
@@ -293,14 +291,14 @@ export async function generateEmbeddings(
     const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
     const texts = batch.map((chunk) => chunk.content);
 
-    const response = await getOpenAI().embeddings.create({
-      model: embeddingModel,
-      input: texts,
+    const response = await embedMany({
+      model: getOpenRouter().textEmbeddingModel(embeddingModel),
+      values: texts,
     });
 
     // Match embeddings back to chunks
     for (let j = 0; j < batch.length; j++) {
-      const embedding = response.data[j].embedding;
+      const embedding = response.embeddings[j];
       results.push({
         ...batch[j],
         embedding,

@@ -49,6 +49,7 @@ interface ChatRequest {
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
   const body: ChatRequest = await req.json();
+  console.log("[api/chat] request body", body);
   const {
     messages,
     conversationId,
@@ -99,6 +100,20 @@ export async function POST(req: Request) {
       );
     }
   }
+
+  let resolvedSystemPrompt = systemPrompt;
+  if (!resolvedSystemPrompt && agentId) {
+    const agent = await convex.query(api.agents.getAgent, {
+      agentId: agentId as Id<"agents">,
+    });
+    resolvedSystemPrompt = agent?.systemPrompt;
+  }
+
+  console.log("[api/chat] resolved system prompt", {
+    agentId,
+    hasSystemPrompt: Boolean(resolvedSystemPrompt),
+    systemPrompt: resolvedSystemPrompt,
+  });
 
   // Get the last user message
   const lastUserMessage = messages.filter((m) => m.role === "user").pop();
@@ -153,8 +168,8 @@ export async function POST(req: Request) {
 
   // Build messages array with system prompt
   const aiMessages: ModelMessage[] = [];
-  if (systemPrompt) {
-    aiMessages.push({ role: "system", content: systemPrompt });
+  if (resolvedSystemPrompt) {
+    aiMessages.push({ role: "system", content: resolvedSystemPrompt });
   }
   aiMessages.push(...messages);
 
@@ -190,7 +205,7 @@ export async function POST(req: Request) {
               tokensPrompt: usage?.inputTokens,
               tokensCompletion: usage?.outputTokens,
               latencyMs,
-              systemPrompt: systemPrompt ?? "",
+              systemPrompt: resolvedSystemPrompt ?? "",
               userMessage: userMessageContent,
               organizationId,
               agentId,

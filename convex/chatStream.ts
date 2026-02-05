@@ -1,25 +1,36 @@
-import { httpAction } from "./_generated/server";
-import { internal, components, api } from "./_generated/api";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   PersistentTextStreaming,
   StreamId,
 } from "@convex-dev/persistent-text-streaming";
+import { streamText, type ModelMessage } from "ai";
+import { httpAction } from "./_generated/server";
+import { internal, components, api } from "./_generated/api";
 import { buildRAGPrompt, buildMessages, extractCitations, type ConversationMessage } from "./rag";
 import { Id } from "./_generated/dataModel";
-import {
-  createDefaultClient,
-  streamChatCompletion,
-  type ChatMessage,
-  OpenRouterAPIError,
-} from "./openrouter";
 import { FALLBACK_RESPONSE } from "./judge";
-import { logChatCompletion } from "./braintrust";
 import { validateOrigin, createForbiddenResponse } from "./cors";
 
 // Initialize the persistent text streaming component
 const persistentTextStreaming = new PersistentTextStreaming(
   components.persistentTextStreaming
 );
+
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+
+function getOpenRouter(): ReturnType<typeof createOpenRouter> {
+  if (_openrouter) {
+    return _openrouter;
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY environment variable is not set");
+  }
+
+  _openrouter = createOpenRouter({ apiKey });
+  return _openrouter;
+}
 
 /**
  * Request body for the chat stream endpoint.
@@ -126,8 +137,8 @@ export const streamChat = httpAction(async (ctx, request) => {
   const model = conversation.agentConfigSnapshot.model;
   const temperature = conversation.agentConfigSnapshot.temperature;
 
-  // Convert messages to OpenRouter format
-  const openRouterMessages: ChatMessage[] = messagesResult.messages.map(
+  // Convert messages to AI SDK format
+  const aiMessages: ModelMessage[] = messagesResult.messages.map(
     (msg: ConversationMessage) => ({
       role: msg.role,
       content: msg.content,
@@ -161,54 +172,39 @@ export const streamChat = httpAction(async (ctx, request) => {
     const startTime = Date.now();
     let completionContent = "";
     let actualModel = model;
-    let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
-
-    // Create OpenRouter client
-    const client = createDefaultClient();
+    let usage:
+      | {
+          inputTokens: number | undefined;
+          outputTokens: number | undefined;
+        }
+      | undefined;
 
     try {
-      // Stream the completion using the OpenRouter client
-      const result = await streamChatCompletion(
-        client,
-        {
-          model,
-          messages: openRouterMessages,
-          temperature,
-          stream: true,
-        },
-        async (chunk) => {
-          completionContent += chunk;
-          await chunkAppender(chunk);
-        }
-      );
+      const openrouter = getOpenRouter();
+      const result = streamText({
+        model: openrouter.chat(model),
+        messages: aiMessages,
+        temperature,
+      });
 
-      // Capture usage stats from the result
-      usage = result.usage;
-      actualModel = result.model;
-    } catch (error) {
-      if (error instanceof OpenRouterAPIError) {
-        console.error("[chat-stream] OpenRouter error:", error.message);
-        throw error;
+      for await (const chunk of result.textStream) {
+        completionContent += chunk;
+        await chunkAppender(chunk);
       }
+
+      const response = await result.response;
+      const usageResult = await result.usage;
+      actualModel = response.modelId;
+      usage = {
+        inputTokens: usageResult.inputTokens,
+        outputTokens: usageResult.outputTokens,
+      };
+    } catch (error) {
+      console.error("[chat-stream] OpenRouter error:", error);
       throw error;
     }
 
     const latencyMs = Date.now() - startTime;
-
-    // Log chat completion to Braintrust
-    logChatCompletion({
-      messages: openRouterMessages,
-      output: completionContent,
-      model: actualModel,
-      latencyMs,
-      tokensPrompt: usage?.prompt_tokens,
-      tokensCompletion: usage?.completion_tokens,
-      organizationId: conversation.organizationId,
-      agentId: conversation.agentId,
-      conversationId,
-      messageId,
-      context: contextForJudge,
-    });
 
     // Run LLM-as-judge safety evaluation
     let finalContent = completionContent;
@@ -236,8 +232,8 @@ export const streamChat = httpAction(async (ctx, request) => {
       content: finalContent,
       model: actualModel,
       latencyMs,
-      tokensPrompt: usage?.prompt_tokens,
-      tokensCompletion: usage?.completion_tokens,
+      tokensPrompt: usage?.inputTokens,
+      tokensCompletion: usage?.outputTokens,
       chunksUsed: chunksUsedIds,
       citations: dbCitations,
       judgeEvaluation: judgeResult,

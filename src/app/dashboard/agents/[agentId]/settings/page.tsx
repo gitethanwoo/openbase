@@ -95,6 +95,7 @@ export default async function AgentSettingsPage({
         <AgentSourcesConnectors
           agentId={agent._id}
           organizationId={currentOrgId}
+          workosUserId={user.id}
         />
         <AgentSettingsForm agent={agent} />
       </div>

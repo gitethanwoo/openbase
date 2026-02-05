@@ -6,7 +6,7 @@
  * 2. Download file from Convex storage
  * 3. Parse content (PDF, DOCX, or TXT)
  * 4. Chunk text (500 tokens, 100 token overlap)
- * 5. Generate embeddings via OpenAI
+ * 5. Generate embeddings via AI SDK (OpenRouter)
  * 6. Store chunks with embeddings in Convex
  * 7. Update status to "ready" or "error"
  */

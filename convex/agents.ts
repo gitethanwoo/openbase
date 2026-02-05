@@ -1,7 +1,24 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import OpenAI from "openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { embedMany } from "ai";
+
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+
+function getOpenRouter(): ReturnType<typeof createOpenRouter> {
+  if (_openrouter) {
+    return _openrouter;
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY environment variable is not set");
+  }
+
+  _openrouter = createOpenRouter({ apiKey });
+  return _openrouter;
+}
 
 /**
  * Get an agent by ID.
@@ -353,12 +370,7 @@ export const retrainAgentSources = internalAction({
     embeddingModel: v.string(),
   },
   handler: async (ctx, args) => {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
-
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+    const openrouter = getOpenRouter();
 
     // Process each source
     for (const sourceId of args.sourceIds) {
@@ -404,9 +416,9 @@ export const retrainAgentSources = internalAction({
 
       // Generate embeddings
       const texts = chunks.map((chunk) => chunk.content);
-      const embeddingResponse = await openai.embeddings.create({
-        model: args.embeddingModel,
-        input: texts,
+      const embeddingResponse = await embedMany({
+        model: openrouter.textEmbeddingModel(args.embeddingModel),
+        values: texts,
       });
 
       // Prepare chunks with embeddings
@@ -415,7 +427,7 @@ export const retrainAgentSources = internalAction({
         agentId: args.agentId,
         sourceId,
         content: chunk.content,
-        embedding: embeddingResponse.data[index].embedding,
+        embedding: embeddingResponse.embeddings[index],
         embeddingModel: args.embeddingModel,
         metadata: {
           sourceType: source.type,

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query, internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import OpenAI from "openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { embedMany } from "ai";
 
 /**
  * Allowed MIME types for file uploads
@@ -13,6 +14,22 @@ const ALLOWED_MIME_TYPES = [
 ] as const;
 
 type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
+
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+
+function getOpenRouter(): ReturnType<typeof createOpenRouter> {
+  if (_openrouter) {
+    return _openrouter;
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY environment variable is not set");
+  }
+
+  _openrouter = createOpenRouter({ apiKey });
+  return _openrouter;
+}
 
 function isAllowedMimeType(mimeType: string): mimeType is AllowedMimeType {
   return ALLOWED_MIME_TYPES.includes(mimeType as AllowedMimeType);
@@ -367,18 +384,12 @@ export const createNotionSource = mutation({
     title: v.string(),
     pageUrl: v.optional(v.string()),
     lastEditedTime: v.optional(v.number()),
+    workosUserId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
     const membership = await ctx.db
       .query("users")
-      .withIndex("by_workosUserId", (q) =>
-        q.eq("workosUserId", identity.subject)
-      )
+      .withIndex("by_workosUserId", (q) => q.eq("workosUserId", args.workosUserId))
       .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .first();
@@ -415,7 +426,7 @@ export const createNotionSource = mutation({
       providerResourceId: args.pageId,
       providerResourceUrl: args.pageUrl,
       providerLastModified: args.lastEditedTime,
-      workosUserId: identity.subject,
+      workosUserId: args.workosUserId,
       createdAt: now,
       updatedAt: now,
     });
@@ -437,18 +448,12 @@ export const createGDriveSource = mutation({
     sizeKb: v.optional(v.number()),
     webViewLink: v.optional(v.string()),
     modifiedTime: v.optional(v.number()),
+    workosUserId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
     const membership = await ctx.db
       .query("users")
-      .withIndex("by_workosUserId", (q) =>
-        q.eq("workosUserId", identity.subject)
-      )
+      .withIndex("by_workosUserId", (q) => q.eq("workosUserId", args.workosUserId))
       .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .first();
@@ -487,7 +492,7 @@ export const createGDriveSource = mutation({
       providerResourceId: args.fileId,
       providerResourceUrl: args.webViewLink,
       providerLastModified: args.modifiedTime,
-      workosUserId: identity.subject,
+      workosUserId: args.workosUserId,
       createdAt: now,
       updatedAt: now,
     });
@@ -757,17 +762,17 @@ export const processManualSource = internalAction({
     embeddingModel: v.string(),
   },
   handler: async (ctx, args) => {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (!openrouterApiKey) {
       await ctx.runMutation(internal.sources.updateStatusInternal, {
         sourceId: args.sourceId,
         status: "error",
-        errorMessage: "OpenAI API key not configured",
+        errorMessage: "OPENROUTER_API_KEY environment variable is not set",
       });
       return;
     }
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+    const openrouter = getOpenRouter();
 
     try {
       // Chunk the content
@@ -784,9 +789,9 @@ export const processManualSource = internalAction({
 
       // Generate embeddings for all chunks
       const texts = chunks.map((chunk) => chunk.content);
-      const embeddingResponse = await openai.embeddings.create({
-        model: args.embeddingModel,
-        input: texts,
+      const embeddingResponse = await embedMany({
+        model: openrouter.textEmbeddingModel(args.embeddingModel),
+        values: texts,
       });
 
       // Prepare chunks with embeddings
@@ -795,7 +800,7 @@ export const processManualSource = internalAction({
         agentId: args.agentId,
         sourceId: args.sourceId,
         content: chunk.content,
-        embedding: embeddingResponse.data[index].embedding,
+        embedding: embeddingResponse.embeddings[index],
         embeddingModel: args.embeddingModel,
         metadata: {
           sourceType: args.sourceType,

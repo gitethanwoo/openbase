@@ -122,17 +122,14 @@ function getNotionPageTitle(properties: Record<string, NotionProperty>): string 
 export const listNotionPages = action({
   args: {
     limit: v.optional(v.number()),
+    workosUserId: v.string(),
   },
   handler: async (ctx, args): Promise<NotionListResult> => {
     const limit = args.limit ?? 50;
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
 
     const tokenResponse = await getPipesAccessToken(
       NOTION_PROVIDER,
-      identity.subject
+      args.workosUserId
     );
 
     if (!tokenResponse.active) {
@@ -226,17 +223,14 @@ function buildMimeTypeQuery(): string {
 export const listGDriveFiles = action({
   args: {
     limit: v.optional(v.number()),
+    workosUserId: v.string(),
   },
   handler: async (ctx, args): Promise<GDriveListResult> => {
     const limit = args.limit ?? 50;
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
 
     const tokenResponse = await getPipesAccessToken(
       GDRIVE_PROVIDER,
-      identity.subject
+      args.workosUserId
     );
 
     if (!tokenResponse.active) {

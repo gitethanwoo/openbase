@@ -14,7 +14,7 @@
  * - Creates a job record to track processing status
  * - Scrape single page or crawl multiple pages via Firecrawl
  * - Chunks text (500 tokens, 100 overlap)
- * - Generates embeddings via OpenAI
+ * - Generates embeddings via AI SDK (OpenRouter)
  * - Stores chunks in Convex
  * - Updates source and job status
  */
