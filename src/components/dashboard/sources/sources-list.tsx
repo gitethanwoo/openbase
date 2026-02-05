@@ -15,6 +15,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  Cloud,
+  NotebookText,
 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -40,6 +42,17 @@ const typeIcons: Record<string, React.ReactNode> = {
   website: <Globe className="h-4 w-4" />,
   text: <Type className="h-4 w-4" />,
   qa: <MessageSquare className="h-4 w-4" />,
+  notion: <NotebookText className="h-4 w-4" />,
+  gdrive: <Cloud className="h-4 w-4" />,
+};
+
+const typeLabels: Record<string, string> = {
+  file: "File",
+  website: "Website",
+  text: "Text",
+  qa: "Q&A",
+  notion: "Notion",
+  gdrive: "Google Drive",
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -163,7 +176,7 @@ export function SourcesList({ sources, agents, organizationId }: SourcesListProp
                           {source.agentName}
                         </Link>
                         <span>·</span>
-                        <span className="capitalize">{source.type}</span>
+                        <span>{typeLabels[source.type] ?? source.type}</span>
                         {source.sizeKb && (
                           <>
                             <span>·</span>
@@ -249,6 +262,12 @@ export function SourcesList({ sources, agents, organizationId }: SourcesListProp
             </li>
             <li>
               <strong>Q&A pairs</strong> - Question and answer pairs for specific queries
+            </li>
+            <li>
+              <strong>Notion</strong> - Import shared pages from your workspace
+            </li>
+            <li>
+              <strong>Google Drive</strong> - Import Docs, Sheets, PDFs, and text files
             </li>
           </ul>
         </CardContent>

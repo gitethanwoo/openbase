@@ -11,6 +11,8 @@ import {
   FileText,
   ExternalLink,
   BookOpen,
+  Cloud,
+  NotebookText,
 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -279,6 +281,10 @@ function SourceTypeIcon({ type }: { type: string }) {
       return <Globe className="h-4 w-4 text-muted-foreground shrink-0" />;
     case "file":
       return <FileText className="h-4 w-4 text-muted-foreground shrink-0" />;
+    case "notion":
+      return <NotebookText className="h-4 w-4 text-muted-foreground shrink-0" />;
+    case "gdrive":
+      return <Cloud className="h-4 w-4 text-muted-foreground shrink-0" />;
     default:
       return <Clock className="h-4 w-4 text-muted-foreground shrink-0" />;
   }

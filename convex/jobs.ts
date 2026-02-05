@@ -21,6 +21,8 @@ export const JOB_TYPE = {
   WEB_SCRAPING: "web_scraping",
   TEXT_SNIPPET: "text_snippet",
   QA_PAIR: "qa_pair",
+  NOTION_IMPORT: "notion_import",
+  GDRIVE_IMPORT: "gdrive_import",
 } as const;
 
 export type JobType = (typeof JOB_TYPE)[keyof typeof JOB_TYPE];

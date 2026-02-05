@@ -357,6 +357,146 @@ export const createWebSource = mutation({
 });
 
 /**
+ * Create a Notion source record for a selected page.
+ */
+export const createNotionSource = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    pageId: v.string(),
+    title: v.string(),
+    pageUrl: v.optional(v.string()),
+    lastEditedTime: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const membership = await ctx.db
+      .query("users")
+      .withIndex("by_workosUserId", (q) =>
+        q.eq("workosUserId", identity.subject)
+      )
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .first();
+
+    if (!membership) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!args.title.trim()) {
+      throw new Error("Page title is required");
+    }
+
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      throw new Error("Organization not found");
+    }
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.deletedAt) {
+      throw new Error("Agent not found");
+    }
+    if (agent.organizationId !== args.organizationId) {
+      throw new Error("Agent does not belong to this organization");
+    }
+
+    const now = Date.now();
+
+    const sourceId = await ctx.db.insert("sources", {
+      organizationId: args.organizationId,
+      agentId: args.agentId,
+      type: "notion",
+      status: "pending",
+      name: args.title.trim(),
+      providerResourceId: args.pageId,
+      providerResourceUrl: args.pageUrl,
+      providerLastModified: args.lastEditedTime,
+      workosUserId: identity.subject,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { sourceId };
+  },
+});
+
+/**
+ * Create a Google Drive source record for a selected file.
+ */
+export const createGDriveSource = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    agentId: v.id("agents"),
+    fileId: v.string(),
+    fileName: v.string(),
+    mimeType: v.string(),
+    sizeKb: v.optional(v.number()),
+    webViewLink: v.optional(v.string()),
+    modifiedTime: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const membership = await ctx.db
+      .query("users")
+      .withIndex("by_workosUserId", (q) =>
+        q.eq("workosUserId", identity.subject)
+      )
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .first();
+
+    if (!membership) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!args.fileName.trim()) {
+      throw new Error("File name is required");
+    }
+
+    const org = await ctx.db.get(args.organizationId);
+    if (!org || org.deletedAt) {
+      throw new Error("Organization not found");
+    }
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.deletedAt) {
+      throw new Error("Agent not found");
+    }
+    if (agent.organizationId !== args.organizationId) {
+      throw new Error("Agent does not belong to this organization");
+    }
+
+    const now = Date.now();
+
+    const sourceId = await ctx.db.insert("sources", {
+      organizationId: args.organizationId,
+      agentId: args.agentId,
+      type: "gdrive",
+      status: "pending",
+      name: args.fileName.trim(),
+      mimeType: args.mimeType,
+      sizeKb: args.sizeKb,
+      providerResourceId: args.fileId,
+      providerResourceUrl: args.webViewLink,
+      providerLastModified: args.modifiedTime,
+      workosUserId: identity.subject,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { sourceId };
+  },
+});
+
+/**
  * Update crawled pages count (used by the web scraping workflow).
  */
 export const updateCrawledPages = mutation({

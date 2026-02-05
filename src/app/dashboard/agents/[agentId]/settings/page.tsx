@@ -7,6 +7,7 @@ import {
   setCurrentOrganizationId,
 } from "@/lib/organization-session";
 import { DashboardLayout } from "@/components/dashboard";
+import { AgentSourcesConnectors } from "@/components/dashboard/agents/agent-sources-connectors";
 import { AgentSettingsForm } from "@/components/dashboard/agents/agent-settings-form";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -91,6 +92,10 @@ export default async function AgentSettingsPage({
           </p>
         </div>
 
+        <AgentSourcesConnectors
+          agentId={agent._id}
+          organizationId={currentOrgId}
+        />
         <AgentSettingsForm agent={agent} />
       </div>
     </DashboardLayout>
